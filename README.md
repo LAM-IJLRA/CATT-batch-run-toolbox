@@ -6,10 +6,8 @@ CATT_batch_processing.py and CATT_batch_processing.m allow to execute multiple r
 Before anything else , you need to :
 
 - enable auto-run-save hidden options. Copy the following code in the hidden options  .txt files (same code for both):
-CATT-A in CATTDATA\hidddenoptions_v9.txt:
 C2009-05641-49C61-6B041 ;AutoRunSaveCAG
-TUCT In CATTDATA\hidddenoptions_TUCT.txt:
-C2009-05641-49C61-6B041 ;AutoRunSave
+in CATTDATA\hidddenoptions_v9.txt and in CATTDATA\hidddenoptions_TUCT.txt
 
 TUCT2 will read the prediction settings from the file room_predictionsettings.DAT contained in the output folder defined in your CATT project. Consequently, if you want to run a single CATT project with different prediction settings, you need to define them prior to running the script.
 
