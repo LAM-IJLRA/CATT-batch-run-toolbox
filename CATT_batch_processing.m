@@ -18,12 +18,11 @@
 %   entire project).
 %
 %   Before anything else:  
-%       - enable auto-run-save hidden options. Copy the following code in
-%       the hidden options  .txt files (same code for both):
-%       CATT-A in CATTDATA\hidddenoptions_v9.txt:
+%       - Enable auto-run-save hidden options. Copy the following code in 
+%       the hidden options .txt files for CATT and TUCT 
+%       ("CATTDATA\hidddenoptions_v9.txt" and "CATTDATA\hidddenoptions_TUCT.txt").
+%       The code is the same for both files:
 %       C2009-05641-49C61-6B041 ;AutoRunSaveCAG
-%       TUCT In CATTDATA\hidddenoptions_TUCT.txt:
-%       C2009-05641-49C61-6B041 ;AutoRunSave
 %       - define the path of CATT application in the GLOBAL VARIABLES 
 %       section below
 %
