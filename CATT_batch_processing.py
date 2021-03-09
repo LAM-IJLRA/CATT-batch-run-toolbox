@@ -41,15 +41,27 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 
 	# conversion to Pathlib.path to ease path manipulations
 	inputFile = pathlib.PureWindowsPath(inputFile)
-	CATTexe = pathlib.PureWindowsPath(CATTexe)
-	TUCTexe = pathlib.PureWindowsPath(TUCTexe)
 
 	A = autocatt.projects.readMD9(inputFile)
 
+	inputFolder = A["inputDir"]
+	outputFolder = A["outputDir"]
+	geoFile = A["geoFile"]
+	rcvLoc = A["rcvLoc"]
+	srcLoc = A["srcLoc"]	
+	room = A["project"]
+	CATTexe = pathlib.PureWindowsPath(CATTexe)
+	TUCTexe = pathlib.PureWindowsPath(TUCTexe)
+
+
 	print("----------------")
 	print("input File :     ", inputFile.as_posix())
-	print("output folder :  ", (outputFolder := A["outputDir"]).as_posix())
-	print("room : 		    ", (room := A["project"]))
+	print("input folder :   ", inputFolder.as_posix())
+	print("output folder :  ", outputFolder.as_posix())
+	print("geo file :       ", geoFile.as_posix())
+	print("rcv loc :        ", rcvLoc.as_posix())
+	print("src loc :        ", srcLoc.as_posix())
+	print("room : 		    ", room)
 	print("number of runs : ", nbrRuns)
 	print("irFormat :       ", irFormat)
 	print("export meas :	", meas)

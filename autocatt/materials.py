@@ -70,9 +70,10 @@ class MaterialFileModifier:
 			return mat
 
 	def setStatusVector(self, x):
+		# set all absorption and scattering coefficient from a vector
 		if any(y < 0 and y > 0 for y in x): raise ValueError("values must lie within [0, 100]")
 		for matName in self.__M:
-			print(matName)
+			print(f"setting material {matName} properties")
 			for coeffType in ["absCoeff", "scatCoeff"]:
 				if self.__M[matName][coeffType]:
 					startIdx = self.__statusVectorInfo[matName][coeffType]["startIdx"]
@@ -81,36 +82,25 @@ class MaterialFileModifier:
 					print(f"end idx : {endIdx}")
 					self.__M[matName][coeffType] = x[startIdx:endIdx+1].astype(int).tolist()
 		self.updateFile()	
-			
 		
 	def updateFile(self):
 		# abs coeff
 		for matName in self.__M:
 			newStrAbs = ' '.join([str(x) for x in self.__M[matName]["absCoeff"]])
 			if "scatCoeff" not in self.__M[matName] or not bool(self.__M[matName]["scatCoeff"]):
-				pattern = re.compile(r"(ABS\s*" + matName + r"\s*=\s*)<[\d\s]*>(.*)$")
+				pattern = re.compile(r"(^\s*ABS\s*" + matName + r"\s*=\s*)<[\d\s]*>(.*)$")
 				for line in fileinput.input(self.__filename, inplace = True):
 					line = pattern.sub(r"\1<" + newStrAbs + r" >\2", line.rstrip())
 					print(line)
 			else: # modify both abs and scat coefficients
-				pattern = re.compile(r"(ABS\s*" + matName + r"\s*=\s*)<[\d\s]*>\s*L\s*<[\d\s]*>(.*)$")
+				pattern = re.compile(r"(^\s*ABS\s*" + matName + r"\s*=\s*)<[\d\s]*>\s*L\s*<[\d\s]*>(.*)$")
 				newStrScat = ' '.join([str(x) for x in self.__M[matName]["scatCoeff"]])
 				for line in fileinput.input(self.__filename, inplace = True):
 					line = pattern.sub(r"\1<" + newStrAbs + r" > L <" + newStrScat + r" >\2", line.rstrip())
 					print(line)
 		
-
-
-	def modify(self, name, values, coeffType="absCoeff"):
-
-		if coeffType == "absCoeff":
-			pattern = r"(ABS\s" + name + r"\s=\s)<[\d\s]*>(.*)$"
-			newStr = ' '.join([str(x) for x in values])
-			for line in fileinput.input(self.__filename, inplace = True):
-				line = re.sub(pattern, r"\1<" + newStr + r" >\2", line.rstrip())
-				print(line)
-		
 	def __getitem__(self, x):
+		# get coefficient for specific material and frequency band	
 		if len(x) == 2:
 			matName, freqIdx = x
 			coeffType = "absCoeff"
@@ -122,6 +112,7 @@ class MaterialFileModifier:
 		return self.__M[matName][coeffType][freqIdx]
 
 	def __setitem__(self, x, y):
+		# set coefficient for specific material and frequency band
 		if len(x) == 2:
 			matName, freqIdx = x
 			coeffType = "absCoeff"
@@ -160,7 +151,7 @@ def readAllMaterials(filename):
 	patternMatName = r"([A-Za-z0-9_]+)" # alpha num with "_"
 	pattern0to100 = r"0*(?:[1-9]?[0-9]|100)" # only 0 to 100 with optional leading 0s
 	patternGrpNbrs = r"<(\s*(?:" + pattern0to100 + r"\s*){6,8})>"
-	pattern = r"ABS\s+" + patternMatName + "\s*=\s*" + patternGrpNbrs + r"(?:\s*L\s*" + patternGrpNbrs + ")?"
+	pattern = r"^\s*ABS\s+" + patternMatName + "\s*=\s*" + patternGrpNbrs + r"(?:\s*L\s*" + patternGrpNbrs + ")?"
 
 #	if format == "dict":
 #		formatOutput = lambda name, abso, scat : {"name":name, "absCoeff": abso, "scatCoeff":scat }
@@ -196,7 +187,7 @@ def readMaterial(filename, material, format="dict"):
 	patternMatName = material
 	pattern0to100 = r"0*(?:[1-9]?[0-9]|100)" # only 0 to 100 with optional leading 0s
 	patternGrpNbrs = r"<((?:" + pattern0to100 + r"\s?){6,8})>"
-	pattern = r"ABS\s" + patternMatName + "\s=\s" + patternGrpNbrs + r"(?:\s?L\s" + patternGrpNbrs + ")?"
+	pattern = r"^\s*ABS\s" + patternMatName + "\s=\s" + patternGrpNbrs + r"(?:\s?L\s" + patternGrpNbrs + ")?"
 
 
 	if format == "dict":

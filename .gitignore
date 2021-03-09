@@ -1,0 +1,10 @@
+*.sh
+*__pycache__/
+*egg-info/
+*.mat
+*.wav
+*.MD9
+*.md9
+*.GEO
+*.geo
+*.swp
