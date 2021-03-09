@@ -42,11 +42,11 @@ def matToWav(filename: pathlib.PosixPath):
 		print(f"order {maxOrder}")
 
 		if maxOrder > 0:
-			suffix = ["W", "Y", "Z", "X"] # FUMA (order matters !)
+			suffix = ["W", "Y", "Z", "X"] # ACN (order matters !)
 		elif maxOrder > 1:
-			suffix.extend(["V", "T", "R", "S", "U"]) # FUMA (order matters !)
+			suffix.extend(["V", "T", "R", "S", "U"]) # ACN (order matters !)
 		elif maxOrder == 3:
-			suffix.extend(["Q", "O", "M", "K", "L", "N", "P"]) # FUMA (order matters !)
+			suffix.extend(["Q", "O", "M", "K", "L", "N", "P"]) # ACN (order matters !)
 		else:
 			raise("wrong number of channels")
 
