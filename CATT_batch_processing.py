@@ -45,7 +45,7 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 	A = autocatt.projects.readMD9(inputFile)
 
 	inputFolder = A["inputDir"]
-	outputFolder = A["outputDir"]
+	outputFolder_temp = A["outputDir"]
 	geoFile = A["geoFile"]
 	rcvLoc = A["rcvLoc"]
 	srcLoc = A["srcLoc"]	
@@ -57,7 +57,7 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 	print("----------------")
 	print("input File :     ", inputFile.as_posix())
 	print("input folder :   ", inputFolder.as_posix())
-	print("output folder :  ", outputFolder.as_posix())
+	print("output folder (temp) :  ", outputFolder_temp.as_posix())
 	print("geo file :       ", geoFile.as_posix())
 	print("rcv loc :        ", rcvLoc.as_posix())
 	print("src loc :        ", srcLoc.as_posix())
@@ -69,20 +69,34 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 	print("TUCT exe :       ", TUCTexe)
 
 
-	CAGBaseName = outputFolder / room # (pathlib.Path manipulations)
+	CAGBaseName = outputFolder_temp / room # (pathlib.Path manipulations)
 	print(f"CAG basename: {CAGBaseName}")
 
 	commandCATT = f"{CATTexe.as_posix()!s} {inputFile!s} /AUTO"
 	print(commandCATT)
 
+	# check for count number
+	counterFile = CAGBaseName.withName(room + "_count.DAT")
+	if counterFile.exists():
+		with open(counterFile, 'rb') as file:
+			count = struct.unpack('i', file.read(4))[0]
+	else:
+		count = 0
+			
+
 	for ii in range(nbrRuns):
+		count += 1
 
 		os.system(commandCATT)
 		print("\n")
 
-		CAGFile = CAGBaseName.parent / (CAGBaseName.stem + f"_{ii+1:d}.CAG")
+		CAGFile = CAGBaseName.parent / (CAGBaseName.stem + f"_{count:d}.CAG")
 		commandTUCT = f"{TUCTexe.as_posix()!s} {CAGFile.as_posix()!s} /AUTO /SAVE:{','.join(irFormat)}"
 		os.system(commandTUCT)
+
+		# move all CATT anbd TUCT output files to folder of current run 
+#outputRunFolder = outputFolder.parent / f"OUTPUT_{room}_finalResults" / f"run{ii:d}"
+
 		print("\n")
 
 	
