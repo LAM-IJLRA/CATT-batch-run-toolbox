@@ -40,7 +40,7 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 # MD9 file must have been generated before
 
 	# conversion to Pathlib.path to ease path manipulations
-	inputFile = pathlib.PureWindowsPath(inputFile)
+	inputFile = pathlib.Path(inputFile)
 
 	A = autocatt.projects.readMD9(inputFile)
 
@@ -50,8 +50,8 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 	rcvLoc = A["rcvLoc"]
 	srcLoc = A["srcLoc"]	
 	room = A["project"]
-	CATTexe = pathlib.PureWindowsPath(CATTexe)
-	TUCTexe = pathlib.PureWindowsPath(TUCTexe)
+	CATTexe = pathlib.Path(CATTexe)
+	TUCTexe = pathlib.Path(TUCTexe)
 
 
 	print("----------------")
@@ -76,7 +76,7 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 	print(commandCATT)
 
 	# check for count number
-	counterFile = CAGBaseName.withName(room + "_count.DAT")
+	counterFile = CAGBaseName.with_name(room + "_count.DAT")
 	if counterFile.exists():
 		with open(counterFile, 'rb') as file:
 			count = struct.unpack('i', file.read(4))[0]

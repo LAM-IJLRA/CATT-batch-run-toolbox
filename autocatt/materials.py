@@ -2,209 +2,150 @@ import re
 import pathlib
 import numpy as np
 import fileinput # to modify file inplace with re
+import numbers
+#import materialsGUI
+
+patternMatName = r"([A-Za-z0-9_]+)"
+pattern0to100 = r"0*(?:[1-9]?[0-9]|100)" # only integer from 0 to 100 with possible leading zeros
+patternGrpNbrs = r"<(\s*(?:" + pattern0to100 + r"\s*){6,8})>"
+patternLine = r"^\s*ABS\s*[a-zA-Z0-9_-]+\s*=\s*" + patternGrpNbrs + r"(?:\s*L\s*" + patternGrpNbrs + r"\s*)?"
+
+class FreqBandValues:
+	def __init__(self, values, callback=None):
+		firstFreq = 125
+		freqs = [int(firstFreq*2**(x)) for x in range(len(values))]
+		self._values = dict(zip(freqs, values))
+		self.callback = callback
+
+	def __getitem__(self, freq):
+		return self._values[freq]
+
+	def __setitem__(self, freqs, vals):
+		# TODO: clean this mess
+		if isinstance(vals, numbers.Number) == False and len(freqs) != len(vals):
+			raise ValueError("'vals' must be a scalar or have the same length as 'freqs'")
+		if isinstance(freqs, numbers.Number) == False:
+			for ff in freqs:
+				if ff not in self._values:
+					raise ValueError(f"Unknown frequency {ff}")
+			if isinstance(vals, numbers.Number) == False:
+				for f, v in zip(freqs, vals):
+					self._values[f] = v
+			else:
+				for f in freqs:
+					self._values[f] = vals
+		else:
+			if freqs not in self._values:
+				raise ValueError(f"Unkonw frequency {freqs}")
+			self._values[freqs] = vals
+
+		if self.callback is not None:
+			self.callback()
+
+	def values(self):
+		return list(self._values.values())
+
+	def frequencies(self):
+		return list(self._values.keys())
+			
+		
+		
+		
 
 class Material:
-	def __init__(self, name, absCoeff, scatCoeff = [], filename = None):
-		self.name = name
-		self.absCoeff = absCoeff
-		self.scatCoeff = scatCoeff
+	def __init__(self, name, filenames = ()):
+		self._name = name
+		self._absCoeff = []
+		self._scattCoeff = []
+		self._filenames = filenames
+
+		self._pattern = r"^\s*ABS\s*" + self._name + r"\s*=\s*" + patternGrpNbrs + r"(?:\s*L\s*" + patternGrpNbrs + r")?"
+		self._patternComp = re.compile(self._pattern)
+
+		# pattern used to replace the content of abs coeffs only
+		# new values must be inserted between 1st and 2nd group 
+		self._patternShort = r"(^\s*ABS\s*" + self._name + r"\s*=\s*<)[\d\s]*(>.*$)"
+		self._patternShortComp = re.compile(self._patternShort)
+
+		# pattern used to replace the content of abs coeffs and scatt coeffs
+		# new values for abs coeffs must be inserted between 1st and 2nd group 
+		# new values for scatt coeffs must be inserted between 2nd and 3nd group 
+		self._patternLong = r"(^\s*ABS\s*" + self._name + r"\s*=\s*<)[\d\s]*(>\s*L\s*<)[\d\s]*(>.*$)"
+		self._patternLongComp = re.compile(self._patternLong)
+
+
+
+		# import values for absCoeff and scattCoeff from files
+		self.importValuesFromFiles()
+
 	def __str__(self):
-		return f"Material '{self.name}'\nabs coeff: {*self.absCoeff,}\nscatt coeff: {*self.scatCoeff,}"
+		return f"Material '{self._name}'\nabs coeff: {*self._absCoeff.values(),}\nscatt coeff: {*self._scattCoeff.values(),}"
+
+	
+	@property
+	def absCoeff(self):
+		return self._absCoeff
+
+	@property
+	def scattCoeff(self):
+		return self._scattCoeff
+
+	def importValuesFromFiles(self):
+		with fileinput.input(files=self._filenames) as f:
+			for line in f:
+				if (x := self._patternComp.findall(line)):
+					if "absCoeff" in locals():
+						raise RuntimeError("Material seems to be defined more than once in the files")
+					absCoeff = [int(s) for s in x[0][0].strip().split(' ')]
+					scattCoeff = [int(s) for s in x[0][1].strip().split(' ') if x[0][1]]
+
+		self._absCoeff = FreqBandValues(absCoeff, callback = self.updateValuesInFile)
+		self._scattCoeff = FreqBandValues(scattCoeff, callback = self.updateValuesInFile)
 
 
-class MaterialFileModifier:
-	def __init__(self, filename):
-		if isinstance(filename, pathlib.Path):
-			self.__filename = filename
-		else:
-			self.__filename = pathlib.Path(filename)
-		self.__M = readAllMaterials(self.__filename)
-		#self.__updateFromFile()
-		self.__updateStatusVectorInfo()
+	def updateValuesInFile(self):
+		newStrAbsCoeffs = ' '.join([str(int(x)) for x in self._absCoeff.values()])
 
-	def __str__(self):
-		# return formatted string with information about all materials
-		string = ""
-		string = string + "{:<20}".format("MATERIALS")
-		for ff in [125, 250, 500, 1000, 2000, 4000, 8000, 16000]: 
-			string += f"{ff:^12}"
-		for matName in self.__M:
-			string += "\n"
-			string += "{:<20s}".format(matName)
-			if "scatCoeff" not in self.__M[matName] or not self.__M[matName]["scatCoeff"]:
-				for	absCoeff in self.__M[matName]["absCoeff"]:
-					string += f"  {absCoeff:>3d}{'':7}"
-			else:
-				for	absCoeff, scatCoeff in zip(self.__M[matName]["absCoeff"], self.__M[matName]["scatCoeff"]): 
-					string += f"  {absCoeff:>3d} ({scatCoeff:>3d}) "
-		return string
-
-	def __updateStatusVectorInfo(self):
-		info = {}
-		idx = 0
-		for matName in self.__M: # iterate along keys of dictionary
-			idxEnd = idx + len(self.__M[matName]["absCoeff"]) - 1
-			info[matName] = {"absCoeff": {"startIdx": idx, "endIdx": idxEnd}}
-			idx = idxEnd + 1
-		for matName in self.__M:
-			if self.__M[matName]["scatCoeff"]:
-				idxEnd = idx + len(self.__M[matName]["scatCoeff"]) - 1
-				info[matName]["scatCoeff"] = {"startIdx": idx, "endIdx": idxEnd}
-				idx = idxEnd + 1
-		self.__statusVectorInfo = info
-
-	def getStatusVector(self, getInfo=True):
-		# return vector containing all parameters (absCoeff and scatCoeff), these are created from
-		# status vector format:
-		# all absorption coefficients are serialized material after material.
-		# If scatt coefficients must be included, then all scattering 
-		# coefficients are serialized mat after mat and appended at the end of 
-		# the vector
-		matAbs =  np.hstack([self.__M[matName]["absCoeff"] for matName in self.__M])
-		matScatt = np.hstack([self.__M[matName]["scatCoeff"] for matName in self.__M if self.__M[matName]["scatCoeff"]])
-		mat = np.hstack([matAbs, matScatt])
-
-		if getInfo:
-			return mat, self.__statusVectorInfo
-		else:
-			return mat
-
-	def setStatusVector(self, x):
-		# set all absorption and scattering coefficient from a vector
-		if any(y < 0 and y > 0 for y in x): raise ValueError("values must lie within [0, 100]")
-		for matName in self.__M:
-			print(f"setting material {matName} properties")
-			for coeffType in ["absCoeff", "scatCoeff"]:
-				if self.__M[matName][coeffType]:
-					startIdx = self.__statusVectorInfo[matName][coeffType]["startIdx"]
-					endIdx = self.__statusVectorInfo[matName][coeffType]["endIdx"]
-					print(f"start idx :{startIdx}")
-					print(f"end idx : {endIdx}")
-					self.__M[matName][coeffType] = x[startIdx:endIdx+1].astype(int).tolist()
-		self.updateFile()	
-		
-	def updateFile(self):
-		# abs coeff
-		for matName in self.__M:
-			newStrAbs = ' '.join([str(x) for x in self.__M[matName]["absCoeff"]])
-			if "scatCoeff" not in self.__M[matName] or not bool(self.__M[matName]["scatCoeff"]):
-				pattern = re.compile(r"(^\s*ABS\s*" + matName + r"\s*=\s*)<[\d\s]*>(.*)$")
-				for line in fileinput.input(self.__filename, inplace = True):
-					line = pattern.sub(r"\1<" + newStrAbs + r" >\2", line.rstrip())
+		if not bool(self._scattCoeff.values()):
+			# only needs to modify abs coeffs
+			with fileinput.input(files = self._filenames, inplace = True) as f:
+				for line in f:
+					line = self._patternShortComp.sub(r"\g<1>" + newStrAbsCoeffs + r" \g<2>", line.rstrip())
 					print(line)
-			else: # modify both abs and scat coefficients
-				pattern = re.compile(r"(^\s*ABS\s*" + matName + r"\s*=\s*)<[\d\s]*>\s*L\s*<[\d\s]*>(.*)$")
-				newStrScat = ' '.join([str(x) for x in self.__M[matName]["scatCoeff"]])
-				for line in fileinput.input(self.__filename, inplace = True):
-					line = pattern.sub(r"\1<" + newStrAbs + r" > L <" + newStrScat + r" >\2", line.rstrip())
+		else:
+			# both abs coeffs AND scatt coeffs are updated
+			newStrScattCoeffs = ' '.join([str(int(x)) for x in self._scattCoeff.values()])
+			with fileinput.input(files = self._filenames, inplace = True) as f:
+				for line in f:
+					line = self._patternLongComp.sub(r"\g<1>" + newStrAbsCoeffs + r" \g<2>" + newStrScattCoeffs + r"\3", line.rstrip())
 					print(line)
-		
-	def __getitem__(self, x):
-		# get coefficient for specific material and frequency band	
-		if len(x) == 2:
-			matName, freqIdx = x
-			coeffType = "absCoeff"
-		elif len(x) == 3:
-			matName, freqIdx, coeffType = x
-		else:
-			raise ValueError("invalid argument")
 
-		return self.__M[matName][coeffType][freqIdx]
 
-	def __setitem__(self, x, y):
-		# set coefficient for specific material and frequency band
-		if len(x) == 2:
-			matName, freqIdx = x
-			coeffType = "absCoeff"
-		elif len(x) == 3:
-			matName, freqIdx, coeffType = x
-		else:
-			raise ValueError("invalid argument")
 
-		if y < 0 or y > 100: raise ValueError("value must lie within [0, 100]")
+def getAllMaterialsFromFiles(filenames):
+	pattern = r"^\s*ABS\s+" + patternMatName + "\s*=\s*" + patternGrpNbrs + r"(?:\s*L\s*" + patternGrpNbrs + r")?"
 
-		if matName in self.__M and self.__M[matName][coeffType] and len(self.__M[matName][coeffType]) > freqIdx:
-			self.__M[matName][coeffType][freqIdx] = y
-		else:
-			raise IndexError("cannot set this parameter")
-		self.updateFile()
+	patternComp = re.compile(pattern)
+
+	allNames = []
+	scattCoeffsDefined = []
+	with fileinput.input(filenames) as f:
+		for line in f:
+			if (x := patternComp.findall(line)):
+				name = x[0][0]
+				if name in allNames:
+					raise RuntimeError("Material seems to be defined more than once in the files")
+				if x[0][2]:
+					scattCoeffsDefined.append(True)
+				else:
+					scattCoeffsDefined.append(False)
+				allNames.append(name)
+
+	# sort materials according to their names
+	allFilenamesWithScattDef = list(zip(allNames, scattCoeffsDefined))
+	allFilenamesWithScattDef.sort(key=lambda x : x[0], reverse = False)
+
+	return list(zip(*allFilenamesWithScattDef)) # unzip the zipped tuples with *
+
 
 	
-
-		
-	
-
-
-
-
-
-
-
-def readAllMaterials(filename):
-# return a list of all materials found in a given geo file
-#
-# zagala - 03.03.2021
-	
-	# group1 is material name
-	# group2 is absorption coefficients 
-	# group3 is scattering coefficients (optional)
-	patternMatName = r"([A-Za-z0-9_]+)" # alpha num with "_"
-	pattern0to100 = r"0*(?:[1-9]?[0-9]|100)" # only 0 to 100 with optional leading 0s
-	patternGrpNbrs = r"<(\s*(?:" + pattern0to100 + r"\s*){6,8})>"
-	pattern = r"^\s*ABS\s+" + patternMatName + "\s*=\s*" + patternGrpNbrs + r"(?:\s*L\s*" + patternGrpNbrs + ")?"
-
-#	if format == "dict":
-#		formatOutput = lambda name, abso, scat : {"name":name, "absCoeff": abso, "scatCoeff":scat }
-#	elif format == "obj":
-#		formatOutput = lambda name, abso, scat : Material(name, abso, scat)
-#	elif format == "tuple":
-#		formatOutput = lambda name, abso, scat : (name, abso, scat)
-#
-#	A = [formatOutput(x[0][0],
-#		[int(s) for s in x[0][1].strip().split(' ')],
-#		[int(s) for s in x[0][2].strip().split(' ') if x[0][2]])
-#		for line
-#		in open("testMATERIAUX")
-#		if (x := re.findall(pattern, line))]
-
-
-	A = {x[0][0]:
-		{"absCoeff": [int(s) for s in re.split("\s+", x[0][1].strip())],
-		"scatCoeff": [int(s) for s in re.split("\s+", x[0][2].strip()) if x[0][2]]}
-		for line
-		in open(filename)
-		if (x := re.findall(pattern, line))}
-
-	print(A)
-
-	return A
-
-
-def readMaterial(filename, material, format="dict"):
-
-	# group1 is absorption coefficients 
-	# group2 is scattering coefficients (optional)
-	patternMatName = material
-	pattern0to100 = r"0*(?:[1-9]?[0-9]|100)" # only 0 to 100 with optional leading 0s
-	patternGrpNbrs = r"<((?:" + pattern0to100 + r"\s?){6,8})>"
-	pattern = r"^\s*ABS\s" + patternMatName + "\s=\s" + patternGrpNbrs + r"(?:\s?L\s" + patternGrpNbrs + ")?"
-
-
-	if format == "dict":
-		formatOutput = lambda abso, scat : {"absCoeff": abso, "scatCoeff":scat }
-	elif format == "tuple":
-		formatOutput = lambda abso, scat : (abso, scat)
-
-	A = [formatOutput([int(s) for s in x[0][0].strip().split(' ')],
-		[int(s) for s in x[0][1].strip().split(' ') if x[0][1]])
-		for line
-		in open("testMATERIAUX")
-		if (x := re.findall(pattern, line))]
-	
-	if len(A) > 1:
-		raise("Material is defined more than once")
-	
-	return A
-
-
-
