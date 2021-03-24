@@ -1,3 +1,39 @@
+# 'autocatt' Python library
+Zagala 24.03.2021
+based on codes proposed by De Muynke
+
+## To use:
+- create a virtual environement with all required modules (e.g. using conda)
+```
+conda env create -f environement.yml
+```
+- activate the environement
+```
+conda activate autocatt-env
+```
+- either use the 'autocatt' library, e.g.
+```Python
+from autocatt.projects import readMD9
+...
+```
+or use the command line tools, e.g.
+```
+acmaterials -i project.MD9
+```
+```
+acbatch -i project.MD9
+```
+For this, one first need to install the autocatt modules as follows
+```
+cd /the/right/directory
+pip install --editable .
+```
+
+
+
+--------
+
+
 # CATT-batch-run-toolbox
 Matlab and Python scripts for batch processing of CATT/TUCT2 simulations
 
