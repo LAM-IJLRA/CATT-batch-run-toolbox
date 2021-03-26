@@ -6,6 +6,7 @@
 import click
 import os
 os.environ["KIVY_NO_CONSOLELOG"] = "1"
+os.environ["KIVY"]
 import autocatt.materials
 import autocatt.projects
 import autocatt.materialsGUI
