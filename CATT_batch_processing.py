@@ -42,26 +42,29 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 	# conversion to Pathlib.path to ease path manipulations
 	inputFile = pathlib.Path(inputFile)
 
-	A = autocatt.projects.readMD9(inputFile)
+	A = autocatt.projects.MD9Wrapper(inputFile)
 
-	inputFolder = A["inputDir"]
-	outputFolder_temp = A["outputDir"]
-	geoFile = A["geoFile"]
-	rcvLoc = A["rcvLoc"]
-	srcLoc = A["srcLoc"]	
-	room = A["project"]
+	inputFolder = A.inputFolder
+	outputFolder = A.outputFolder
+	geoFile = A.masterGeoFile
+	rcvLoc = A.receiverLocFile
+	srcLoc = A.sourceLocFile
+	projectName = A.projName
+
+
 	CATTexe = pathlib.Path(CATTexe)
 	TUCTexe = pathlib.Path(TUCTexe)
 
 
 	print("----------------")
-	print("input File :     ", inputFile.as_posix())
-	print("input folder :   ", inputFolder.as_posix())
-	print("output folder (temp) :  ", outputFolder_temp.as_posix())
-	print("geo file :       ", geoFile.as_posix())
-	print("rcv loc :        ", rcvLoc.as_posix())
-	print("src loc :        ", srcLoc.as_posix())
-	print("room : 		    ", room)
+#	print("input File :     ", inputFile.as_posix())
+#	print("input folder :   ", inputFolder.as_posix())
+#	print("output folder (temp) :  ", outputFolder.as_posix())
+#	print("geo file :       ", geoFile.as_posix())
+#	print("rcv loc :        ", rcvLoc.as_posix())
+#	print("src loc :        ", srcLoc.as_posix())
+#	print("projectName : 	", projectName)
+	print(A)
 	print("number of runs : ", nbrRuns)
 	print("irFormat :       ", irFormat)
 	print("export meas :	", meas)
@@ -69,14 +72,15 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 	print("TUCT exe :       ", TUCTexe)
 
 
-	CAGBaseName = outputFolder_temp / room # (pathlib.Path manipulations)
+
+	CAGBaseName = outputFolder / projectName
 	print(f"CAG basename: {CAGBaseName}")
 
 	commandCATT = f"{CATTexe.as_posix()!s} {inputFile!s} /AUTO"
 	print(commandCATT)
 
 	# check for count number
-	counterFile = CAGBaseName.with_name(room + "_count.DAT")
+	counterFile = CAGBaseName.with_name(projectName + "_count.DAT")
 	if counterFile.exists():
 		with open(counterFile, 'rb') as file:
 			count = struct.unpack('i', file.read(4))[0]
@@ -95,7 +99,7 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 		os.system(commandTUCT)
 
 		# move all CATT anbd TUCT output files to folder of current run 
-#outputRunFolder = outputFolder.parent / f"OUTPUT_{room}_finalResults" / f"run{ii:d}"
+#outputRunFolder = outputFolder.parent / f"OUTPUT_{projectName}_finalResults" / f"run{ii:d}"
 
 		print("\n")
 

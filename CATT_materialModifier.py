@@ -41,6 +41,8 @@ def main(inputFile):
 
 	configFilename = "autocatt/materials.ini"
 	configFilename = pathlib.Path(configFilename)
+	absPath = os.path.realpath(__file__)
+	configFilename = pathlib.Path(absPath).parent / configFilename
 	configFilename = str(configFilename.absolute())
 	f = open(configFilename, "w+")
 	f.write("[input]\n")
