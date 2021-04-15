@@ -446,7 +446,7 @@ class PredictionSettingWrapper:
 
 		self._prop_algo = BinEncProp_scalar(self, 0x00000008, format = 'b')
 
-		self._prop_length = BinEncProp_scalar(self, 0x00000009, format = 'f', min = 0.05, max = 2)
+		self._prop_length = BinEncProp_scalar(self, 0x00000009, format = 'f', min = 0.05, max = 20.0)
 
 		self._prop_nbrRays = BinEncProp_scalar(self, 0x0000000D, format = 'L')
 
@@ -495,7 +495,7 @@ class PredictionSettingWrapper:
 			f"\nMisc\n"
 			f"{'-' * 20}\n"
 			f"{'shut down when done' : <20}: {self.shutDownAfterProc}\n"
-			f"{'single thred' : <20}: {self.singleThread}\n"
+			f"{'single thread' : <20}: {self.singleThread}\n"
 
 			f"{'=' * 80}\n"
 		)

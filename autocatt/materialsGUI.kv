@@ -1,0 +1,76 @@
+
+<AllMatPropTabbedPanel@TabbedPanel>:
+	tab_pos: "top_left"
+	size_hint: 1.0, 1.0
+	pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+	do_default_tab: False
+	background_color: (0.1, 0.1, 0.1, 1)
+
+
+<MatPropPanel@BoxLayout>:
+	materialName: self.materialName
+	orientation: "vertical"
+	colorPickerPopup: self.colorPickerPopup
+	color: self.color
+	canvas:
+		Color:
+			rgba: (0.0, 0.0, 0.0, 1.0)
+		Rectangle:
+			pos: self.pos
+			size: self.size
+	Label:
+		text: root.materialName
+		size_hint_y: 0.1
+	Button:
+		id: but_col
+		text: str(root.color)
+		size_hint_y: 0.1
+		on_press: root.openColorPicker()
+
+
+<ColorPickerPopup@Popup>
+	title: f"pick a color for {self.ownerMat.materialName}"
+	ownerMat: self.ownerMat
+	size_hint: (0.8, 0.8)
+	colorPicker: cp
+	BoxLayout:
+		orientation: "vertical"
+		ColorPicker:
+			id: cp
+		Button:
+			text: "close"
+			on_press: root.matColorChanged(), root.dismiss()
+			size_hint_y: 0.2
+
+
+
+<FreqSections@BoxLayout>:
+	orientation: "horizontal"
+
+
+<FreqSection@BoxLayout>:
+	orientation: "vertical"
+	frequency: self.frequency
+	value: self.value
+	gray: False
+	canvas:
+		Color:
+			rgba: (1, 1, 1, 0 if self.gray else 0.1)
+		Rectangle:
+			pos: self.pos
+			size: self.size
+	Slider:
+		id: slider
+		orientation: "vertical"
+		size_hint_y: 0.8
+		step: 1.0
+		value: root.value
+		on_value: root.on_value_change(value = self.value)
+		value_track: True
+	Label:
+		text: "{:.0f}".format(slider.value)
+		size_hint_y: 0.1
+	Label:
+		text: f"{root.frequency} Hz"
+		size_hint_y: 0.1
+	
