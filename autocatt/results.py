@@ -74,9 +74,18 @@ def computeAcousticParameters(df):
 
 if __name__ == "__main__":
 	folder = pathlib.Path("/Users/zagala/Documents/Doctorat_IRCAM_UPMC/misc/amphi55a/measures/irs/")
-	df = importFiles(folder)
+	df = importFiles(folder, pattern = r"mic(?P<receiver>[a-zA-Z0-9]+)_(?P<source>[a-zA-Z0-9]+)_(?P<repetition>\d+)\.(?:wav|WAV)")
+	df_denoised = importFiles(folder, pattern = r"mic(?P<receiver>[a-zA-Z0-9]+)_(?P<source>[a-zA-Z0-9]+)_(?P<repetition>\d+)_denoised\.(?:wav|WAV)")
+
+	df_denoised["processing"] = "denoised"
+
+	df = pd.concat([df, df_denoised]).reset_index(drop=True)
+
+	df["origin"] = "measures"
 	
 	computeAcousticParameters(df)
+
+	df.to_csv("/Users/zagala/Documents/Doctorat_IRCAM_UPMC/misc/amphi55a/measures/dataframe2.csv", index = False)
 	print(df)
 
 
