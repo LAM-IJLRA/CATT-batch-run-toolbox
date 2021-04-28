@@ -100,10 +100,10 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 	
 	
 	# start debug (to test functions below on MAC)
-	CAGBaseName = pathlib.Path("/Users/zagala/Documents/Doctorat_IRCAM_UPMC/misc/CATT-batch-run-toolbox")
+#	CAGBaseName = pathlib.Path("/Users/zagala/Documents/Doctorat_IRCAM_UPMC/misc/CATT-batch-run-toolbox")
 	# end debug
 
-	autocatt.audio.convertAllAudioMatToWav(CAGBaseName)
+#	autocatt.audio.convertAllAudioMatToWav(CAGBaseName)
 
 
 
