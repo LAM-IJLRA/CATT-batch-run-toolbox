@@ -87,6 +87,10 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 		subprocess.run([str(CATTexe), str(inputFile), '/AUTO'], shell = True, check = True)
 		print("CATT exe done\n")
 
+		# convert all IR from MAT to WAV
+		convertAllAudioMatToWav(outputFolder)
+		print("audio files should be written")
+
 		# create dataframe for current count
 		autocatt.results.createCATTResultsDataframe(projectName, A.outputFolder)
 		print("done")

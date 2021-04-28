@@ -45,7 +45,14 @@ def importFiles(folder, pattern = r"mic(?P<receiver>[a-zA-Z0-9]+)_(?P<source>[a-
 	# create dataframe
 	dataList = [IRToImport(fn, **pattern_comp.search(str(fn)).groupdict()) for fn in allFN]
 
+	print(dataList)
+
 	df = pd.DataFrame(dataList)
+	
+	print('$$$$')
+	print(df)
+	print('$$$$')
+
 	# make sure the right data types are used
 	df = df.astype(dtype= {"folder": "string", "filename": "string", "source": "category", "receiver": "category", "repetition": "uint16", "origin": "category", "processing": "category"})
 	return df
@@ -53,7 +60,8 @@ def importFiles(folder, pattern = r"mic(?P<receiver>[a-zA-Z0-9]+)_(?P<source>[a-
 
 def loadIRData(row, FB):
 	filename = pathlib.Path(row["folder"]) / row["filename"]
-	fs, data = wavfile.read(filename)
+	print(f"{filename=}")
+	fs, data = wavfile.read(str(filename))
 	ir = ImpResSiF.signals.ImpulseResponse(data, fs = fs)
 	ir_oct = FB.filter(ir)
 	freqs = list(ir_oct.keys())
@@ -75,9 +83,13 @@ def createCATTResultsDataframe(projName, outputFolder: pathlib.Path):
 	outputFolder = pathlib.Path(outputFolder)
 
 	pattern = projName + r"_(?P<repetition>\d+)_(?P<source>[A-Z]\d{1,2})_(?P<receiver>\d{1,2}_OMNI.MAT)"
+	print(pattern)
 	df = importFiles(outputFolder, pattern = pattern)
 	computeAcousticParameters(df)
-	df.to_csv(outputFolder / f"{projName}_{src!s}_{rcv!s}.csv")
+	
+	print(df)
+
+	df.to_csv(outputFolder / f"{projName}_dataframe.csv")
 
 
 if __name__ == "__main__":
