@@ -82,7 +82,7 @@ def computeAcousticParameters(df):
 def createCATTResultsDataframe(projName, outputFolder: pathlib.Path):
 	outputFolder = pathlib.Path(outputFolder)
 
-	pattern = projName + r"_(?P<repetition>\d+)_(?P<source>[A-Z]\d{1,2})_(?P<receiver>\d{1,2}_OMNI.MAT)"
+	pattern = projName + r"_(?P<repetition>\d+)_(?P<source>[A-Z]\d{1,2})_(?P<receiver>\d{1,2}_OMNI.(?:WAV|wav))"
 	print(pattern)
 	df = importFiles(outputFolder, pattern = pattern)
 	computeAcousticParameters(df)
