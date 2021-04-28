@@ -5,7 +5,6 @@ from scipy.io import wavfile
 import pandas as pd
 import pathlib
 import re
-import itertool
 
 # IR are "stored" in a Dataframe with the following columns:
 # - folder
