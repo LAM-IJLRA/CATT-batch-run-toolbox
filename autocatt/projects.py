@@ -431,7 +431,21 @@ class MD9Wrapper:
 
 
 
+class CounterFileWrapper:
+	def __init__(self, filename):
+		self._filename = pathlib.Path(filename)
 
+		self._propCount = BinEncProp_scalar(self, 0x0000, format = "i")
+
+	def __str__(self):
+		return f"{'count' : <20}: {self.count:10d}\n"
+
+	@property
+	def count(self):
+		return self._propCount.readValueFromFile()
+	@count.setter
+	def count(self, x):
+		self._propCount.writeValueToFile(x)
 
 
 

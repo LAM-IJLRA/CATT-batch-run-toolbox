@@ -75,8 +75,9 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 	# check for count number
 	counterFile = CAGBaseName.with_name(projectName + "_count.DAT")
 	if counterFile.exists():
-		with open(counterFile, 'rb') as file:
-			count = struct.unpack('i', file.read(4))[0]
+		counterFileW = autocatt.projects.CounterFileWrapper(counterFile)
+		count = counterFileW.count
+		print(counterFileW)
 	else:
 		count = 0
 			
