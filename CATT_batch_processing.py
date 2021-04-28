@@ -92,7 +92,11 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 		print("audio files should be written")
 
 		# create dataframe for current count
-		autocatt.results.createCATTResultsDataframe(projectName, A.outputFolder)
+		if A.outputFolder.is_absolute():
+			currFolder = A.outputFolder
+		else:
+			currFolder = inputFile.parent / A.outputFolder
+		autocatt.results.createCATTResultsDataframe(projectName, currFolder)
 		print("done")
 		
 
