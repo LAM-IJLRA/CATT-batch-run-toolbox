@@ -88,7 +88,7 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 		print("CATT exe done\n")
 
 		# create dataframe for current count
-		autocatt.results.createCATTResultsDataframe(projName, A.outputFolder)
+		autocatt.results.createCATTResultsDataframe(projectName, A.outputFolder)
 		print("done")
 		
 
