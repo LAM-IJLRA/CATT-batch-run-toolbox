@@ -28,6 +28,10 @@ app = dash.Dash(__name__)
 df = pd.read_csv("/Users/zagala/Documents/Doctorat_IRCAM_UPMC/misc/amphi55a/measures/dataframe2.csv")
 print(df)
 
+# make sure the column "frequency band", "T30", and "C80" are imported as numpy arrays (stored in csv a string with sep=',' and framed by '(', and ')')
+for col in ["frequency band", "T30", "C80"]:
+	df[col] = df[col].apply(lambda x : np.fromstring(x.strip('()[]'), sep=', '))
+
 
 
 app.layout = html.Div([
@@ -94,6 +98,8 @@ def update_graphs(rows):
 		allIRs.append( {"x": currIr.sampleTimes[:4800], "y": currIr[:4800], "name" : row["filename"], "type" : "line"} )
 		allEDCs.append( {"x": currIr.sampleTimes[::100], "y": currIr.energyDecayCurve[::100], "name" : row["filename"], "type" : "line"} )
 #print(type(allEDCs))
+
+
 	
 	return ([
         dcc.Graph(
