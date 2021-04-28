@@ -87,6 +87,12 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 		subprocess.run([str(CATTexe), str(inputFile), '/AUTO'], shell = True, check = True)
 		print("CATT exe done\n")
 
+
+		CAGFile = CAGBaseName.parent / (CAGBaseName.stem + f"_{count:d}.CAG")
+		subprocess.run([str(TUCTexe), str(CAGFile), "/AUTO", f"/SAVE:{','.join(irFormat)}"], shell = True, check = True)
+		print("TUCT exe done\n")
+
+
 		# convert all IR from MAT to WAV
 		autocatt.audio.convertAllAudioMatToWav(outputFolder)
 		print("audio files should be written")
@@ -100,9 +106,6 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 		print("done")
 		
 
-		CAGFile = CAGBaseName.parent / (CAGBaseName.stem + f"_{count:d}.CAG")
-		subprocess.run([str(TUCTexe), str(CAGFile), "/AUTO", f"/SAVE:{','.join(irFormat)}"], shell = True, check = True)
-		print("TUCT exe done\n")
 
 		# move all CATT anbd TUCT output files to folder of current run 
 #outputRunFolder = outputFolder.parent / f"OUTPUT_{projectName}_finalResults" / f"run{ii:d}"
