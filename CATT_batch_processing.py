@@ -88,7 +88,7 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 		print("CATT exe done\n")
 
 		# convert all IR from MAT to WAV
-		convertAllAudioMatToWav(outputFolder)
+		autocatt.audio.convertAllAudioMatToWav(outputFolder)
 		print("audio files should be written")
 
 		# create dataframe for current count
