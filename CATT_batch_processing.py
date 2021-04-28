@@ -84,10 +84,11 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 		count += 1
 
 		subprocess.run([str(CATTexe), str(inputFile), '/AUTO'], shell = True, check = True)
-		print("\n")
+		print("CATT exe done\n")
 
 		CAGFile = CAGBaseName.parent / (CAGBaseName.stem + f"_{count:d}.CAG")
-		subprocess.run([str(TUCTexe), str(CAGFile), "/AUTO", f"/SAVE{','.join(irFormat)}"], shell = True, check = True)
+		subprocess.run([str(TUCTexe), str(CAGFile), "/AUTO", f"/SAVE:{','.join(irFormat)}"], shell = True, check = True)
+		print("TUCT exe done\n")
 
 		# move all CATT anbd TUCT output files to folder of current run 
 #outputRunFolder = outputFolder.parent / f"OUTPUT_{projectName}_finalResults" / f"run{ii:d}"
