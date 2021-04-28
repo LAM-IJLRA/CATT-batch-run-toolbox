@@ -10,6 +10,7 @@ import autocatt.audio
 import autocatt.projects
 import pathlib
 import re
+import subprocess
 
 @click.command()
 @click.option("-i", "--input-file", "inputFile", 
@@ -69,9 +70,6 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 	CAGBaseName = outputFolder / projectName
 	print(f"CAG basename: {CAGBaseName}")
 
-	commandCATT = f"{CATTexe.as_posix()!s} {inputFile!s} /AUTO"
-	print(commandCATT)
-
 	# check for count number
 	counterFile = CAGBaseName.with_name(projectName + "_count.DAT")
 	if counterFile.exists():
@@ -85,12 +83,11 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 	for ii in range(nbrRuns):
 		count += 1
 
-		os.system(commandCATT)
+		subprocess.run([str(CATTexe), str(inputFile), '/AUTO'], shell = True, check = True)
 		print("\n")
 
 		CAGFile = CAGBaseName.parent / (CAGBaseName.stem + f"_{count:d}.CAG")
-		commandTUCT = f"{TUCTexe.as_posix()!s} {CAGFile.as_posix()!s} /AUTO /SAVE:{','.join(irFormat)}"
-		os.system(commandTUCT)
+		subprocess.run([str(TUCTexe), str(CAGFile), "/AUTO", f"/SAVE{','.join(irFormat)}"], shell = True, check = True)
 
 		# move all CATT anbd TUCT output files to folder of current run 
 #outputRunFolder = outputFolder.parent / f"OUTPUT_{projectName}_finalResults" / f"run{ii:d}"
@@ -99,12 +96,6 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 
 	
 	
-	# start debug (to test functions below on MAC)
-#	CAGBaseName = pathlib.Path("/Users/zagala/Documents/Doctorat_IRCAM_UPMC/misc/CATT-batch-run-toolbox")
-	# end debug
-
-#	autocatt.audio.convertAllAudioMatToWav(CAGBaseName)
-
 
 
 if __name__ == "__main__":
