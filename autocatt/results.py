@@ -5,6 +5,7 @@ from scipy.io import wavfile
 import pandas as pd
 import pathlib
 import re
+import itertool
 
 # IR are "stored" in a Dataframe with the following columns:
 # - folder
@@ -70,6 +71,14 @@ def computeAcousticParameters(df):
 	df["T30"] = a[1]
 	df["C80"] = a[2]
 
+
+def createCATTResultsDataframe(projName: string, outputFolder: pathlib.Path):
+	outputFolder = pathlib.Path(outputFolder)
+
+	pattern = projName + r"_(?P<repetition>\d+)_(?P<source>[A-Z]\d{1,2})_(?P<receiver>\d{1,2}_OMNI.MAT)"
+	df = importFiles(outputFolder, pattern = pattern)
+	computeAcousticParameters(df)
+	df.to_csv(outputFolder / f"{projName}_{src!s}_{rcv!s}.csv")
 
 
 if __name__ == "__main__":

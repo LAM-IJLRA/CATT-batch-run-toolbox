@@ -86,6 +86,11 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 		subprocess.run([str(CATTexe), str(inputFile), '/AUTO'], shell = True, check = True)
 		print("CATT exe done\n")
 
+		# create dataframe for current count
+		autocatt.results.createCATTResultsDataframe(projName, A.outputFolder)
+		print("done")
+		
+
 		CAGFile = CAGBaseName.parent / (CAGBaseName.stem + f"_{count:d}.CAG")
 		subprocess.run([str(TUCTexe), str(CAGFile), "/AUTO", f"/SAVE:{','.join(irFormat)}"], shell = True, check = True)
 		print("TUCT exe done\n")
