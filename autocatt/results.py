@@ -86,9 +86,9 @@ def createCATTResultsDataframe(projName, outputFolder: pathlib.Path):
 	print(pattern)
 	df = importFiles(outputFolder, pattern = pattern)
 	computeAcousticParameters(df)
-	
-	print(df)
 
+	df["origin"] = "CATT-Acoustics / TUCT"
+	
 	df.to_csv(outputFolder / f"{projName}_dataframe.csv")
 
 
