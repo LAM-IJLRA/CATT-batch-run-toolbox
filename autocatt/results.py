@@ -72,7 +72,7 @@ def loadIRData(row, FB):
 
 
 def computeAcousticParameters(df):
-	potentialFs = [48000.0, 96000.0]
+	potentialFs = [48000, 96000]
 	FB = {fs: ImpResSiF.filtering.FractionnalBandFilterBank(fLow = 125.0, fHigh = 16000.0, width = "octave", fs = fs) for fs in potentialFs}
 	a = df.apply(lambda row : loadIRData(row, FB), axis = 1)
 	a = list(zip(*a))
