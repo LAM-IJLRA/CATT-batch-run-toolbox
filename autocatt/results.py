@@ -59,11 +59,12 @@ def importFiles(folder, pattern = r"mic(?P<receiver>[a-zA-Z0-9]+)_(?P<source>[a-
 
 
 def loadIRData(row, FB):
+# dirty implementation, but for now: FB is a dictionnary of filter bank according to different sampling frequencies, hence avoiding the creation of the right filter bank everytime
 	filename = pathlib.Path(row["folder"]) / row["filename"]
 	print(f"{filename=}")
 	fs, data = wavfile.read(str(filename))
 	ir = ImpResSiF.signals.ImpulseResponse(data, fs = fs)
-	ir_oct = FB.filter(ir)
+	ir_oct = FB[fs].filter(ir)
 	freqs = list(ir_oct.keys())
 	T30 = np.hstack([ir_o.T30 for ir_o in ir_oct.values()])
 	C80 = np.hstack([ir_o.C80 for ir_o in ir_oct.values()])
@@ -71,7 +72,8 @@ def loadIRData(row, FB):
 
 
 def computeAcousticParameters(df):
-	FB = ImpResSiF.filtering.FractionnalBandFilterBank(fLow = 62.5, fHigh = 16000.0)
+	potentialFs = [48000.0, 96000.0]
+	FB = {fs: ImpResSiF.filtering.FractionnalBandFilterBank(fLow = 125.0, fHigh = 16000.0, width = "octave", fs = fs) for fs in potentialFs}
 	a = df.apply(lambda row : loadIRData(row, FB), axis = 1)
 	a = list(zip(*a))
 	df["frequency band"] = a[0]
