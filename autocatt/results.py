@@ -45,14 +45,8 @@ def importFiles(folder, pattern = r"mic(?P<receiver>[a-zA-Z0-9]+)_(?P<source>[a-
 	# create dataframe
 	dataList = [IRToImport(fn, **pattern_comp.search(str(fn)).groupdict()) for fn in allFN]
 
-	print(dataList)
-
 	df = pd.DataFrame(dataList)
 	
-	print('$$$$')
-	print(df)
-	print('$$$$')
-
 	# make sure the right data types are used
 	df = df.astype(dtype= {"folder": "string", "filename": "string", "source": "category", "receiver": "category", "repetition": "uint16", "origin": "category", "processing": "category"})
 	return df
@@ -61,7 +55,6 @@ def importFiles(folder, pattern = r"mic(?P<receiver>[a-zA-Z0-9]+)_(?P<source>[a-
 def loadIRData(row, FB):
 # dirty implementation, but for now: FB is a dictionnary of filter bank according to different sampling frequencies, hence avoiding the creation of the right filter bank everytime
 	filename = pathlib.Path(row["folder"]) / row["filename"]
-	print(f"{filename=}")
 	fs, data = wavfile.read(str(filename))
 	ir = ImpResSiF.signals.ImpulseResponse(data, fs = fs)
 	ir_oct = FB[fs].filter(ir)
@@ -84,14 +77,17 @@ def computeAcousticParameters(df):
 def createCATTResultsDataframe(projName, outputFolder: pathlib.Path):
 	outputFolder = pathlib.Path(outputFolder)
 
-	pattern = projName + r"_(?P<repetition>\d+)_(?P<source>[A-Z]\d{1,2})_(?P<receiver>\d{1,2}_OMNI.(?:WAV|wav))"
-	print(pattern)
+	pattern = projName + r"_(?P<repetition>\d+)_(?P<source>[A-Z]\d{1,2})_(?P<receiver>\d{1,2})_OMNI.(?:WAV|wav)"
 	df = importFiles(outputFolder, pattern = pattern)
 	computeAcousticParameters(df)
 
 	df["origin"] = "CATT-Acoustics / TUCT"
 	
-	df.to_csv(outputFolder / f"{projName}_dataframe.csv")
+	df.to_csv(outputFolder / f"{projName}_dataframe.csv", index = False)
+
+	# the following is just to simplify my lfe (data shared by both my MacOS and Windows)
+	df["folder"] = df["folder"].replace([r"\\vmware-host\Shared Folders\amphi55a\OUTPUT"], "/Users/zagala/Documents/Doctorat_IRCAM_UPMC/misc/amphi55a/OUTPUT")
+	df.to_csv(outputFolder / f"{projName}_dataframe_macOS.csv", index = False)
 
 
 if __name__ == "__main__":
@@ -108,6 +104,5 @@ if __name__ == "__main__":
 	computeAcousticParameters(df)
 
 	df.to_csv("/Users/zagala/Documents/Doctorat_IRCAM_UPMC/misc/amphi55a/measures/dataframe2.csv", index = False)
-	print(df)
 
 

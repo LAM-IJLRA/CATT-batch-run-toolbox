@@ -112,7 +112,6 @@ def update_graphs(tableContent, rows):
 #		return
 
 	dff = pd.DataFrame(tableContent).loc[rows]
-	print(dff)
 	
 	colors = ['#7FDBFF' if i in rows else '#0074D9'
               for i in range(len(dff))]

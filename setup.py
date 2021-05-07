@@ -9,5 +9,6 @@ setup(name="autocatt",
 			[console_scripts]
 			acbatch=CATT_batch_processing:main
 			acmaterials=CATT_materialModifier:main
+			acresults=CATT_results_comparison:main
 			"""
 	 )
