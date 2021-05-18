@@ -89,14 +89,23 @@ def parse_contents(contents, filename):
 @app.callback(Output("datatable-interactivity", "data"),
 		Output("datatable-interactivity", "columns"),
 		Output("datatable-interactivity", "row_selectable"),
+		Input("datatable-interactivity", "data"),## test
 		Input("datatable-upload", "contents"),
 		State("datatable-upload", "filename"))
-def update_output(contents, filename):
+def update_output(prevContents, contents, filename):
 	if contents is None:
 		return [{}], [], None
 	df = parse_contents(contents, filename)
 	for col in ["frequency band", "T30", "C80"]:
 		df[col] = df[col].apply(lambda x : np.fromstring(x.strip('()[]'), sep=', '))
+	print("\n\n")
+	print(f"{prevContents=}")
+	print(f"{df.to_dict('records')=}")
+	if prevContents[0]:
+		print("extending previous dataframe") 
+		prevContents.extend(df.to_dict("records"))
+		return prevContents, [{"name": col, "id": col, "deletable": False, "selectable": False} for col in df.columns], "multi"
+	print("brand new dataframe")
 	return df.to_dict("records"), [{"name": col, "id": col, "deletable": False, "selectable": False} for col in df.columns], "multi"
 
 
@@ -120,7 +129,8 @@ def update_graphs(tableContent, rows):
 	allEDCs = []
 	for idx, row in dff.iterrows():
 		currIr = loadIR(row)
-		allIRs.append( {"x": currIr.sampleTimes[:4800*2], "y": currIr[:4800*2], "name" : row["filename"], "type" : "line"} )
+		idxMax = np.argmax(currIr.sampleTimes > 0.1) # 100ms (arbitrary)
+		allIRs.append( {"x": currIr.sampleTimes[:idxMax], "y": currIr[:idxMax], "name" : row["filename"], "type" : "line"} )
 		allEDCs.append( {"x": currIr.sampleTimes[::100], "y": currIr.energyDecayCurve[::100], "name" : row["filename"], "type" : "line"} )
 
 
@@ -131,7 +141,10 @@ def update_graphs(tableContent, rows):
             figure={
                 "data": allIRs,
                 "layout": {
-                    "xaxis": {"automargin": True},
+                    "xaxis": {
+						"automargin": True, 
+						"title": "time, in s"
+					},
                     "yaxis": {
                         "automargin": True,
                         "title": {"text": "Impulse response (first reflexions)"}
@@ -147,7 +160,10 @@ def update_graphs(tableContent, rows):
             figure={
                 "data": allEDCs,
                 "layout": {
-                    "xaxis": {"automargin": True},
+                    "xaxis": {
+						"automargin": True, 
+						"title": "time, in s"
+					},
                     "yaxis": {
                         "automargin": True,
                         "title": {"text": "EDC, in dB"}
@@ -164,7 +180,10 @@ def update_graphs(tableContent, rows):
             figure={
                 "data": [ {"x": row["frequency band"], "y": row["T30"], "name": row["filename"]} for _, row in dff.iterrows()],
                 "layout": {
-                    "xaxis": {"automargin": True, "type": "log"},
+                    "xaxis": {
+						"automargin": True, "type": "log",
+						"title": "frequency, in Hz"
+					},
                     "yaxis": {
                         "automargin": True,
                         "title": {"text": "T30, in s"},
@@ -183,7 +202,9 @@ def update_graphs(tableContent, rows):
             figure={
                 "data": [ {"x": row["frequency band"], "y": row["C80"], "name": row["filename"]} for _, row in dff.iterrows()],
                 "layout": {
-                    "xaxis": {"automargin": True, "type": "log"},
+                    "xaxis": {"automargin": True, "type": "log",
+						"title": "frequency, in Hz"
+					},
                     "yaxis": {
                         "automargin": True,
                         "title": {"text": "C80, in dB"},
