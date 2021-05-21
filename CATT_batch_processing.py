@@ -87,6 +87,9 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 		count += 1
 		allMaterials = autocatt.materials.ProjectMaterials(allGeoFiles)
 		print(allMaterials)
+		with open(filepath.Path(outputFolder) / "materialsHistory.log", "a" if count > 1 else "w") as f:
+			f.write(f"simulation {count}\n")
+			f.write(str(allMaterials))
 
 		subprocess.run([str(CATTexe), str(inputFile), '/AUTO'], shell = True, check = True)
 		print("CATT exe done\n")
