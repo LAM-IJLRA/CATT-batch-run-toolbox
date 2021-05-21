@@ -73,7 +73,7 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 	CAGBaseName = outputFolder / projectName
 	print(f"CAG basename: {CAGBaseName}")
 
-	materialsLogFilename = outputfolder / (projectName + "_materials.log")
+	materialsLogFilename = outputFolder / (projectName + "_materials.log")
 
 	# check for count number
 	counterFile = CAGBaseName.with_name(projectName + "_count.DAT")
