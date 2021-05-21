@@ -56,6 +56,10 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 	allGeoFiles = autocatt.projects.getAllNestedGeoFiles(geoFile)
 
 
+	print(geoFile)
+	print(outputFolder)
+
+
 
 	CATTexe = pathlib.Path(CATTexe)
 	TUCTexe = pathlib.Path(TUCTexe)
