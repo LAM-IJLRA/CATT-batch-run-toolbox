@@ -97,7 +97,7 @@ class Material:
 	def getDataFrame(self):
 		df = pd.DataFrame(self.absCoeff._values, index = [0])
 		if self.scattCoeff:
-			df2  = pd.DataFrame(self.ScattCoeff._values, index = [0])
+			df2  = pd.DataFrame(self.scattCoeff._values, index = [0])
 			df = pd.concat([df, df2])
 		df["material"] = self.name
 		return df
