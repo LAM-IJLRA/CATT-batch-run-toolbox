@@ -212,8 +212,8 @@ class ProjectMaterials:
 
 	def getDataFrame(self):
 		all_df = []
-		for mat in self._materials:
-			all_df.append(mat.getDataFrame)
+		for mat in self._materials.values():
+			all_df.append(mat.getDataFrame())
 		return pd.concat(all_df)
 		
 
