@@ -39,6 +39,8 @@ def importFiles(folder, pattern = r"mic(?P<receiver>[a-zA-Z0-9]+)_(?P<source>[a-
 
 	pattern_comp = re.compile(pattern)
 
+	folder = pathlib.Path(folder)
+
 	# get all files that match the required formatting
 	allFN = [f for f in folder.glob("*") if pattern_comp.search(str(f))]
 

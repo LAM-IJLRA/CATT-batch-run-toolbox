@@ -53,6 +53,9 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 	srcLoc = A.sourceLocFile
 	projectName = A.projName
 
+	allGeoFiles = autocatt.projects.getAllNestedGeoFiles(geoFile, keepOnlyMaterialRelevant = True)
+
+
 
 	CATTexe = pathlib.Path(CATTexe)
 	TUCTexe = pathlib.Path(TUCTexe)
@@ -83,6 +86,8 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 
 	for ii in range(nbrRuns):
 		count += 1
+		allMaterials = autocatt.materials.ProjectMaterials(allgeoFiles)
+		print(allMaterials)
 
 		subprocess.run([str(CATTexe), str(inputFile), '/AUTO'], shell = True, check = True)
 		print("CATT exe done\n")

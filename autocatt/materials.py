@@ -92,7 +92,7 @@ class Material:
 
 	def __str__(self):
 		return f"Material '{self._name}'\nabs coeff: {*self._absCoeff.values,}\nscatt coeff: {*self._scattCoeff.values,}"
-	
+
 	@property
 	def name(self):
 		return self._name
@@ -197,6 +197,10 @@ class ProjectMaterials:
 		for mat in self._materials.values():
 			self._NparamsAbs += len(mat.absCoeff.values)
 			self._NparamsScatt += len(mat.scattCoeff.values)
+
+	def __str__(self):
+		return '\n'.join([mat.__str__() for mat in self._materials.values()])
+		
 
 	@property
 	def materials(self):

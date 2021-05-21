@@ -35,7 +35,7 @@ app.layout = html.Div([
 	dcc.Upload(
 		id="datatable-upload",
 		children = html.Div([
-			"Drag and Drop or ", html.A("Select Files")
+			"Drag and Drop IR database or ", html.A("Select Files")
 		]),
 		style = {"width": "100%", "height": "60px", "lineHeight": "60px",
 			"borderWidth": "1px", "borderStyle": "dashed",
@@ -127,96 +127,136 @@ def update_graphs(tableContent, rows):
 
 	allIRs = []
 	allEDCs = []
+	df_IR = []
+	df_onset = []
+	df_EDC = []
+	df_freqParam = []
 	for idx, row in dff.iterrows():
 		currIr = loadIR(row)
 		idxMax = np.argmax(currIr.sampleTimes > 0.1) # 100ms (arbitrary)
 		allIRs.append( {"x": currIr.sampleTimes[:idxMax], "y": currIr[:idxMax], "name" : row["filename"], "type" : "line"} )
 		allEDCs.append( {"x": currIr.sampleTimes[::100], "y": currIr.energyDecayCurve[::100], "name" : row["filename"], "type" : "line"} )
 
+		df_IR.append(pd.DataFrame({"time": currIr.sampleTimes[:idxMax], 
+					"amplitude": currIr[:idxMax] / np.linalg.norm(currIr), 
+					"filename": row["filename"], 
+					"onsetTime": currIr.onsetTime,
+					"source": row["source"],
+					"receiver": row["receiver"],
+					"origin": row["origin"],
+					"processing": row["processing"],
+					"src-rec, origin, processing": " - ".join([str(row["source"]), str(row["receiver"])]) + ", " + row["origin"] + ", " + str(row["processing"])}))
+		df_onset.append(pd.DataFrame({"onsetTime": currIr.onsetTime, "name": row["filename"], "index": [0]}))
+		df_EDC.append(pd.DataFrame({"time": currIr.sampleTimes[::100], 
+					"edc": currIr.energyDecayCurve[::100], 
+					"filename": row["filename"], 
+					"onsetTime": currIr.onsetTime,
+					"processing": row["processing"],
+					"src-rec, origin, processing": " - ".join([str(row["source"]), str(row["receiver"])]) + ", " + row["origin"] + ", " + str(row["processing"])}))
+		
+		df_freqParam.append(pd.DataFrame({"frequency band": row["frequency band"], 
+					"T30": row["T30"], 
+					"C80": row["C80"], 
+					"filename": row["filename"], 
+					"source": row["source"],
+					"receiver": row["receiver"], 
+					"processing":row["processing"],
+					"src-rec, origin, processing": ' - '.join([str(row["source"]), str(row["receiver"])]) + ", " + row["origin"] + ", " + str(row["processing"])
+					}))
 
+	if df_IR:
+		df_IR = pd.concat(df_IR)
+		df_IR["processing"].fillna(value = "", inplace = True)
+		df_onset = pd.concat(df_onset)
+		fig_irs = px.line(df_IR, x="time", y="amplitude", 
+				line_group = "filename", 
+				color = "src-rec, origin, processing",
+				hover_name = "filename",
+				hover_data = {"filename": False, 
+							"src-rec, origin, processing": False, 
+							"time": ":.3f",
+							"amplitude": ":.3f",
+							"source": True,
+							"receiver": True,
+						   	"origin": True,
+							"processing": True	},
+				labels = {"time": "time, in s"},
+				render_mode = "svg") 
+		for _, row2 in df_onset.iterrows():
+			fig_irs.add_vline(x=row2["onsetTime"],
+					line_dash = "dot",
+					line_color = "#AAA",
+					annotation_text = "onset " + row2["name"],
+					annotation_textangle = -90.0,
+					annotation_font = {"color": "#AAA"},
+					annotation_position = "top left")
+	else:
+		fig_irs = px.line(x=None, y=None, labels = dict(x="time, in s", y="amplitude")) 
+
+
+	if df_EDC:
+		df_EDC = pd.concat(df_EDC)
+		df_EDC["processing"].fillna(value = "", inplace = True)
+		fig_edc = px.line(df_EDC, x="time", y="edc", 
+				line_group="filename", 
+				color="src-rec, origin, processing", 
+				labels = {"time": "time, in s", "edc": "EDC, in dB"},
+				render_mode = "svg")
+	else:
+		fig_edc = px.line(x=None, y=None, 
+				labels = dict(x="time, in s", y="EDC, in dB")) 
 	
-	return ([
-        dcc.Graph(
-            id="graph-IR",
-            figure={
-                "data": allIRs,
-                "layout": {
-                    "xaxis": {
-						"automargin": True, 
-						"title": "time, in s"
-					},
-                    "yaxis": {
-                        "automargin": True,
-                        "title": {"text": "Impulse response (first reflexions)"}
-                    },
-                    "height": 250,
-                    "margin": {"t": 10, "l": 10, "r": 10},
-					"height": 600
-                },
-            },
-        )], 
-	[ dcc.Graph(
-		id="graph-EDC",
-            figure={
-                "data": allEDCs,
-                "layout": {
-                    "xaxis": {
-						"automargin": True, 
-						"title": "time, in s"
-					},
-                    "yaxis": {
-                        "automargin": True,
-                        "title": {"text": "EDC, in dB"}
-                    },
-                    "height": 250,
-                    "margin": {"t": 10, "l": 10, "r": 10},
-					"height": 600
-                },
-            },
-        )],
-	[
-        dcc.Graph(
-            id="graph-T30",
-            figure={
-                "data": [ {"x": row["frequency band"], "y": row["T30"], "name": row["filename"]} for _, row in dff.iterrows()],
-                "layout": {
-                    "xaxis": {
-						"automargin": True, "type": "log",
-						"title": "frequency, in Hz"
-					},
-                    "yaxis": {
-                        "automargin": True,
-                        "title": {"text": "T30, in s"},
-						"min": 0.0
-                    },
-                    "height": 250,
-                    "margin": {"t": 10, "l": 10, "r": 10},
-					"height": 600
-                },
-            },
-        )
-    ],
-	[
-        dcc.Graph(
-            id="graphC80",
-            figure={
-                "data": [ {"x": row["frequency band"], "y": row["C80"], "name": row["filename"]} for _, row in dff.iterrows()],
-                "layout": {
-                    "xaxis": {"automargin": True, "type": "log",
-						"title": "frequency, in Hz"
-					},
-                    "yaxis": {
-                        "automargin": True,
-                        "title": {"text": "C80, in dB"},
-						"min": 0.0
-                    },
-                    "height": 250,
-                    "margin": {"t": 10, "l": 10, "r": 10},
-					"height": 600
-                },
-            },
-        )
-    ])
+
+	if df_freqParam:
+		df_freqParam = pd.concat(df_freqParam)
+		df_freqParam["processing"].fillna(value = "", inplace = True)
+		fig_T30 = px.line(df_freqParam, x="frequency band", y="T30", 
+				line_group = "filename", 
+				log_x = True, 
+				range_x=[50.,20000.], 
+				color = "src-rec, origin, processing", 
+				labels = {"frequency band": "frequency band, in Hz",
+					"T30":"T30, in s"},
+				render_mode = "svg")
+		fig_C80 = px.line(df_freqParam, x="frequency band", y="C80", 
+				line_group = "filename", 
+				log_x = True, 
+				range_x=[50.,20000.], 
+				color = "src-rec, origin, processing",
+				labels = {"frequency band": "frequency band, in Hz",
+					"C80": "C80, in dB"},
+				render_mode = "svg")
+	else:
+		fig_T30 = px.line(x = None, y = None, log_x=True)
+		fig_C80 = px.line(x = None, y = None, log_x=True)
+
+
+
+	return (dcc.Graph(id = "graph-IR", figure = fig_irs),
+			dcc.Graph(id = "graph-EDC", figure = fig_edc),
+			dcc.Graph(id = "graph-T30", figure = fig_T30),
+			dcc.Graph(id = "graph-C80", figure = fig_C80),)
+#	[
+#        dcc.Graph(
+#            id="graphC80",
+#            figure={
+#                "data": [ {"x": row["frequency band"], "y": row["C80"], "name": row["filename"]} for _, row in dff.iterrows()],
+#                "layout": {
+#                    "xaxis": {"automargin": True, "type": "log",
+#						"title": "frequency, in Hz"
+#					},
+#                    "yaxis": {
+#                        "automargin": True,
+#                        "title": {"text": "C80, in dB"},
+#						"min": 0.0
+#                    },
+#                    "height": 250,
+#                    "margin": {"t": 10, "l": 10, "r": 10},
+#					"height": 600
+#                },
+#            },
+#        )
+#    ])
 
 
 
