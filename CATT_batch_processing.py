@@ -87,8 +87,9 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 
 	for ii in range(nbrRuns):
 		count += 1
+
+		# update materials log file
 		allMaterials = autocatt.materials.ProjectMaterials(allGeoFiles)
-		print(allMaterials)
 		df = allMaterials.getDataFrame()
 		df["counter"] = count
 		df = df[["counter"] + [col for col in df.columns if col != "counter"] ]
@@ -96,17 +97,15 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 			mode, includeHeader = 'a', False
 		else:
 			mode, includeHeader = 'w', True
-		df.to_csv(str(materialsLogFilename), mode = mode, header = includeHeader)
-#		with open(CAGBaseName.parent / (CAGBaseName.stem + "_materials.log"), "a" if count > 1 else "w") as f:
-#			f.write('-' * 80 + '\n')
-#			f.write(f"simulation {count}\n")
-#			f.write('-' * 80 + '\n')
-#			f.write(str(allMaterials))
+		df.to_csv(str(materialsLogFilename), mode = mode, header = includeHeader, index = False)
 
+
+		# CATT
 		subprocess.run([str(CATTexe), str(inputFile), '/AUTO'], shell = True, check = True)
 		print("CATT exe done\n")
 
 
+		# TUCT
 		CAGFile = CAGBaseName.parent / (CAGBaseName.stem + f"_{count:d}.CAG")
 		subprocess.run([str(TUCTexe), str(CAGFile), "/AUTO", f"/SAVE:{','.join(irFormat)}"], shell = True, check = True)
 		print("TUCT exe done\n")
