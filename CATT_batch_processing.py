@@ -73,6 +73,8 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 	CAGBaseName = outputFolder / projectName
 	print(f"CAG basename: {CAGBaseName}")
 
+	materialsLogFilename = outputfolder / (projectName + "_materials.log")
+
 	# check for count number
 	counterFile = CAGBaseName.with_name(projectName + "_count.DAT")
 	if counterFile.exists():
@@ -90,11 +92,16 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 		df = allMaterials.getDataFrame()
 		df["counter"] = count
 		df = df[["counter"] + [col for col in df.columns if col != "counter"] ]
-		with open(CAGBaseName.parent / (CAGBaseName.stem + "_materials.log"), "a" if count > 1 else "w") as f:
-			f.write('-' * 80 + '\n')
-			f.write(f"simulation {count}\n")
-			f.write('-' * 80 + '\n')
-			f.write(str(allMaterials))
+		if count > 1:
+			mode, includeHeader = 'a', False
+		else:
+			mode, includeHeader = 'w', True
+		df.to_csv(str(materialsLogFilename), mode = mode, header = includeHeader)
+#		with open(CAGBaseName.parent / (CAGBaseName.stem + "_materials.log"), "a" if count > 1 else "w") as f:
+#			f.write('-' * 80 + '\n')
+#			f.write(f"simulation {count}\n")
+#			f.write('-' * 80 + '\n')
+#			f.write(str(allMaterials))
 
 		subprocess.run([str(CATTexe), str(inputFile), '/AUTO'], shell = True, check = True)
 		print("CATT exe done\n")
