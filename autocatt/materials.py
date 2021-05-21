@@ -199,7 +199,7 @@ class ProjectMaterials:
 			self._NparamsScatt += len(mat.scattCoeff.values)
 
 	def __str__(self):
-		return '\n'.join([mat.__str__() for mat in self._materials.values()])
+		return '\n'.join([mat.__str__() for mat in self._materials.values()]) + '\n'
 		
 
 	@property

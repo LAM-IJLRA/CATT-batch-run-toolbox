@@ -88,7 +88,9 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 		allMaterials = autocatt.materials.ProjectMaterials(allGeoFiles)
 		print(allMaterials)
 		with open(pathlib.Path(outputFolder) / "materialsHistory.log", "a" if count > 1 else "w") as f:
+			f.write('-' * 80 + '\n')
 			f.write(f"simulation {count}\n")
+			f.write('-' * 80 + '\n')
 			f.write(str(allMaterials))
 
 		subprocess.run([str(CATTexe), str(inputFile), '/AUTO'], shell = True, check = True)
