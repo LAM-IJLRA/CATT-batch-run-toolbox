@@ -86,7 +86,7 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 
 	for ii in range(nbrRuns):
 		count += 1
-		allMaterials = autocatt.materials.ProjectMaterials(allgeoFiles)
+		allMaterials = autocatt.materials.ProjectMaterials(allGeoFiles)
 		print(allMaterials)
 
 		subprocess.run([str(CATTexe), str(inputFile), '/AUTO'], shell = True, check = True)
