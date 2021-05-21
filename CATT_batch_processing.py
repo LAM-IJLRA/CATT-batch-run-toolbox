@@ -87,7 +87,9 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 		count += 1
 		allMaterials = autocatt.materials.ProjectMaterials(allGeoFiles)
 		print(allMaterials)
-		print(allMaterials.getDataFrame())
+		df = allMaterials.getDataFrame
+		df["count"] = count
+		df = df[["count"] + [col for col in df.columns if col != "count"] ]
 		with open(CAGBaseName.parent / (CAGBaseName.stem + "_materials.log"), "a" if count > 1 else "w") as f:
 			f.write('-' * 80 + '\n')
 			f.write(f"simulation {count}\n")
