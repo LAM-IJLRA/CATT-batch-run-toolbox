@@ -5,6 +5,7 @@ import fileinput # to modify file inplace with re
 import numbers
 #import materialsGUI
 from collections.abc import Iterable
+import pandas as pd
 
 patternMatName = r"([A-Za-z0-9_]{1,15})" # max 15 charcters among letters, numbers and '_'
 pattern0to100 = r"0*(?:[1-9]?[0-9]|100)" # only integer from 0 to 100 with possible leading zeros
@@ -92,6 +93,14 @@ class Material:
 
 	def __str__(self):
 		return f"Material '{self._name}'\nabs coeff: {*self._absCoeff.values,}\nscatt coeff: {*self._scattCoeff.values,}"
+
+	def getDataFrame(self):
+		df = pd.DataFrame(self.absCoeff)
+		if self.scattCoeff:
+			df2  = pd.DataFrame(self.ScattCoeff)
+			df = pd.concat([df, df2])
+		df["material"] = self.name
+		return df
 
 	@property
 	def name(self):
@@ -200,6 +209,12 @@ class ProjectMaterials:
 
 	def __str__(self):
 		return '\n'.join([mat.__str__() for mat in self._materials.values()]) + '\n'
+
+	def getDataFrame(self):
+		all_df = []
+		for mat in self._materials:
+			all_df.append(mat.getDataFrame)
+		return pd.concat(all_df)
 		
 
 	@property
