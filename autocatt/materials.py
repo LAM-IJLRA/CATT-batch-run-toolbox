@@ -102,7 +102,7 @@ class Material:
 			df2["type"] = "scattering"
 			df = pd.concat([df, df2])
 		df["material"] = self.name
-		df = df[ ["material", "type"] + [ col for col in df.columns if col not in ["material", "type"]) ] ]
+		df = df[ ["material", "type"] + [ col for col in df.columns if col not in ["material", "type"] ] ] ]
 		return df
 
 	@property
