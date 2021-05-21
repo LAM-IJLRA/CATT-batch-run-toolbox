@@ -53,7 +53,7 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 	srcLoc = A.sourceLocFile
 	projectName = A.projName
 
-	allGeoFiles = autocatt.projects.getAllNestedGeoFiles(geoFile, keepOnlyMaterialRelevant = True)
+	allGeoFiles = autocatt.projects.getAllNestedGeoFiles(geoFile)
 
 
 

@@ -762,8 +762,7 @@ def getNestedGeoFiles(geoFilename: pathlib.Path):
 
 def getAllNestedGeoFiles(geoMasterFilename: pathlib.Path, keepOnlyMaterialRelevant = False):
 
-	if isinstance(geoMasterFilename, pathlib.Path) == False:
-		geoMasterFilename = pathlib.Path(geoMasterFilename)
+	geoMasterFilename = pathlib.Path(geoMasterFilename)
 
 	allFilenames = []
 	newFilenamesCurrOrder = [geoMasterFilename]
