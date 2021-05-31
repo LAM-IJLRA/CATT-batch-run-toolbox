@@ -1,276 +1,466 @@
 import re
+from itertools import zip_longest
+import fileinput
+import autocatt.projects
 import pathlib
-import numpy as np
-import fileinput # to modify file inplace with re
-import numbers
-#import materialsGUI
-from collections.abc import Iterable
-import pandas as pd
-
-patternMatName = r"([A-Za-z0-9_]{1,15})" # max 15 charcters among letters, numbers and '_'
-pattern0to100 = r"0*(?:[1-9]?[0-9]|100)" # only integer from 0 to 100 with possible leading zeros
-# TODO: allow for scientific notation, e.g. 1 1. 1.0 1E+00 1.E+00 1.0E+00 1E0 1.E0 1.0E0
-# TODO: abs values are actually defined in interval ]0, 100[ not [0, 100]
-# TODO: implement definition of transmission values, e.g. <10/2 9/19 ...>
-# TODO: accept < estimate(0.4) > and control the parameter with slider
-# TODO: accept 'ABS1' for defining values within ]0, 1[ instead of ]0, 100[
-patternGrpNbrs = r"<(\s*(?:" + pattern0to100 + r"\s*){6}(?::?\s*" + pattern0to100 + r"\s*){0,2})>"
-pattern0To255Int = r"\b(?:1?[0-9]{1,2}|2[0-4][0-9]|25[0-5])\b"
-patternColor = r"{[ \t]*((?:" + pattern0To255Int + r"[ \t]*){3})}"
-patternLine = r"^\s*(?:AUD)?ABS\s*[a-zA-Z0-9_-]+\s*=\s*" + patternGrpNbrs + r"(?:\s*L1?\s*" + patternGrpNbrs + r"[ \t]*)?" + r"[ \t]*(?:" + patternColor + ")?"
 
 
-class FreqBandValues:
-	def __init__(self, values, callback=None):
-		firstFreq = 125
-		frequencies = [125, 250, 500, 1000, 2000, 4000, 8000, 16000]
-		self._values = dict(zip(frequencies, values))
-		self.callback = callback
 
-	def __getitem__(self, freq):
-		return self._values[freq]
+patternMatName = r"(?P<MaterialName>[a-zA-Z][a-zA-Z0-9_]{0,15})" # max 15 characters, first must be a letter, trailing ones can be also numbers or '_'
+patternInt0to100 = r"(?<![\d-])0*(?:[1-9]?[0-9]|100)(?!\d)" # only integer from 0 to 100 with possible leading zeros
+patternFloat0to1 = r"(?<![\d-])0*(?:\.\d*|\.\d*|1|1\.\d*)?(?!\d)" # only floating point between 0 and 1
+patternFloatPos = r"(?:(?:\d+\.\d+)|(?:\.\d+)|\d+)"
 
-	def __setitem__(self, freqs, vals):
-		# TODO: clean this mess
-		if isinstance(vals, numbers.Number) == False and len(freqs) != len(vals):
-			raise ValueError("'vals' must be a scalar or have the same length as 'freqs'")
-		if isinstance(freqs, numbers.Number) == False:
-			for ff in freqs:
-				if ff not in self._values:
-					raise ValueError(f"Unknown frequency {ff}")
-			if isinstance(vals, numbers.Number) == False:
-				for f, v in zip(freqs, vals):
-					self._values[f] = v
-			else:
-				for f in freqs:
-					self._values[f] = vals
-		else:
-			if freqs not in self._values:
-				raise ValueError(f"Unknown frequency {freqs}")
-			self._values[freqs] = vals
+patternInt0to255 = r"(?<![\d-])(?:1?[0-9]{1,2}|2[0-4][0-9]|25[0-5])(?!\d)"
+patternColor = r"{[ \t]*(?P<ColorRGB>(?:" + patternInt0to255 + r"[ \t]*){3})}"
+patternColorOpt = r"(?:" + patternColor + r")?"
 
-		if self.callback is not None:
-			self.callback()
+# RE patterns for number groups
+patternGrpNbr0to100 = r"[ \t]*(?:" + patternInt0to100 + r"[ \t]*){6}(?::[ \t]*(?:" + patternInt0to100 + r"[ \t]*){0,2})?"
+patternGrpNbr0to100slash = r"[ \t]*(?:" + patternInt0to100 + r"\/" + patternInt0to100 + r"[ \t]*){6}(?::[ \t]*(?:" + patternInt0to100 + r"\/" + patternInt0to100 + r"[ \t]*){0,2})?"
 
-	@property
-	def values(self):
-		return list(self._values.values())
+patternGrpNbr0to1 = r"[ \t]*(?:" + patternFloat0to1 + r"[ \t]*){6}(?::[ \t]*(?:" + patternFloat0to1 + r"[ \t]*){0,2})?"
+patternGrpNbr0to1slash = r"[ \t]*(?:" + patternFloat0to1 + r"\/" + patternFloat0to1 + r"[ \t]*){6}(?::[ \t]*(?:" + patternFloat0to1 + r"\/" + patternFloat0to1 + r"[ \t]*){0,2})?"
 
-	@property
-	def frequencies(self):
-		return list(self._values.keys())
-			
+patternScattEstimate = r"<[ \t]*estimate\([ \t]*(?P<scattCoeffEstimate>" + patternFloatPos + r")[ \t]*\)[ \t]*>"
+
+# re patterns for abs, abs-transparency, and scattering
+patternAbs = r"<[ \t]*(?P<absCoeff>" + patternGrpNbr0to100 + r")[ \t]*>"
+patternAbsTransp = r"<[ \t]*(?P<absTranspCoeff>" + patternGrpNbr0to100slash + r")[ \t]*>"
+patternAbsOrAbsTransp = r"(?:(?:" + patternAbs + r")|(?:" + patternAbsTransp + r"))"
+patternScatt = r"<[ \t]*(?P<scattCoeff>" + patternGrpNbr0to100 + r")[ \t]*>"
+patternScatt = r"(?:(?:" + patternScatt + ")|(?:" + patternScattEstimate + "))"
+
+patternAbs1 = r"<[ \t]*(?P<absCoeff>" + patternGrpNbr0to1 + r")[ \t]*>"
+patternAbsTransp1 = r"<[ \t]*(?P<absTranspCoeff>" + patternGrpNbr0to1slash + r")[ \t]*>"
+patternAbsOrAbsTransp1 = r"(?:(?:" + patternAbs1 + r")|(?:" + patternAbsTransp1 + r"))"
+patternScatt1 = r"<[ \t]*(?P<scattCoeff>" + patternGrpNbr0to1 + r")[ \t]*>"
+patternScatt1 = r"(?:(?:" + patternScatt1 + ")|(?:" + patternScattEstimate + "))"
+
+patternLambertType = r"(?P<LambertType>L1?)"
+
+patternContent100 = patternAbsOrAbsTransp + r"[ \t]*(?:" + patternLambertType + r"[ \t]*" + patternScatt + r")?[ \t]*" + patternColorOpt + "(?P<Comments>.*)?"
+patternContent1 = patternAbsOrAbsTransp1 + r"[ \t]*(?:" + patternLambertType + r"[ \t]*" + patternScatt1 + r")?[ \t]*" + patternColorOpt + "(?P<Comments>.*)?"
+
+
+
+class FreqDependentValues:
+	# values are stored as floating point values
+	frequencies = [125, 250, 500, 1000, 2000, 4000, 8000, 16000]
+	def __init__(self, *args, defaultValue = 0.0, callback = None):
+		vals = args[0] if args else []
+		assert len(vals) <= len(FreqDependentValues.frequencies)
+		self._dictionary = dict(zip_longest(FreqDependentValues.frequencies, vals, fillvalue = defaultValue))
+		self._callback = callback
+	def __str__(self):
+		return str(self._dictionary)
+	def __setitem__(self, key, item):
+		if key not in self._dictionary:
+			raise KeyError(f"Frequency {key} is not defined.")
+		assert (item >= 0.0) and (item <= 1.0)
+		self._dictionary[key] = float(item)
+		if self._callback is not None:
+			self._callback()
+	def __getitem__(self, key):
+		return self._dictionaryValues[key]
+	def setFromArray(self, x):
+		for ii in range(len(x)):
+			self[FreqDependentValues.frequencies[ii]] = x[ii]
+	def getArray(self, n = 8):
+		return list(self._dictionary.values())[0:n]	
+
+
 		
-		
-		
 
-class Material:
-	def __init__(self, name, filenames = ()):
+class SingleMaterialWrapper:
+	frequencies = FreqDependentValues.frequencies
+	def __init__(self, name, filenames):
+		assert re.fullmatch(patternMatName, name)
 		self._name = name
-		self._absCoeff = []
-		self._scattCoeff = []
-		self._color = []
 		self._filenames = filenames
 
-		self._pattern = r"^\s*ABS\s*" + self._name + r"\s*=\s*" + patternGrpNbrs + r"(?:\s*L1?\s*" + patternGrpNbrs + r")?" + r"(?:[ \t]*" + patternColor + r")?"
-		self._patternComp = re.compile(self._pattern)
+		self._absCoeff = FreqDependentValues(callback = self.updateFile)
+		self._transpCoeff = FreqDependentValues(callback = self.updateFile)
+		self._scattCoeff = FreqDependentValues(callback = self.updateFile)
 
-		# pattern used to replace the content of abs coeffs only
-		# new values must be inserted between 1st and 2nd group 
-		self._patternShort = r"(^\s*ABS\s*" + self._name + r"\s*=\s*)<[\d\s:]*>[ \t]*(?:{" + patternColor + "})?(.*$)"
-		self._patternShortComp = re.compile(self._patternShort)
+		self._color = [255, 255, 255]
 
-		# pattern used to replace the content of abs coeffs and scatt coeffs
-		# new values for abs coeffs must be inserted between 1st and 2nd group 
-		# new values for scatt coeffs must be inserted between 2nd and 3nd group 
-		self._patternLong = r"(^\s*ABS\s*" + self._name + r"\s*=\s*)<[\d\s:]*>([ \t]*L1?[ \t]*)<[\d\s:]*>[ \t]*(?:{" + patternColor + "})?(.*$)"
-		self._patternLongComp = re.compile(self._patternLong)
+		self._isAudience = False
+		self._floatFormat = False
 
+		self._transpDefined = False
+		self._scattDefined = True
+		self._colorDefined = False
 
+		self._nbrAbsTranspCoeffs = 6
 
-		# import values for absCoeff and scattCoeff from files
-		self.importValuesFromFiles()
+		self._lambert1D = False
+		self._nbrScattCoeffs = 6
+		self._estimateScatt = False
+		self._scattRoughness = 0.1
+
+		self._isReading = False # just to make sure one does not try to write in the file while reading it
+
+		self._patternPrime = re.compile(r"^[ \t]*(?P<Audience>AUD)?ABS(?P<FloatFormat>1)?[ \t]*" + self._name + r"[ \t]*=[ \t]*(?P<Content>.*)$")
+
+		self._comments = ""
+
+		self.updateFromFile()
 
 	def __str__(self):
-		return f"Material '{self._name}'\nabs coeff: {*self._absCoeff.values,}\nscatt coeff: {*self._scattCoeff.values,}"
-
-	def getDataFrame(self):
-		df = pd.DataFrame(self.absCoeff._values, index = [0])
-		df["type"] = "absorption"
-		if self.scattCoeff._values:
-			df2  = pd.DataFrame(self.scattCoeff._values, index = [0])
-			df2["type"] = "scattering"
-			df = pd.concat([df, df2])
-		df["material"] = self.name
-		df = df[ ["material", "type"] + [ col for col in df.columns if col not in ["material", "type"] ] ]
-		return df
+		return (
+			f"ABS\n"
+			f"{self.absCoeff}\n"
+			f"TRANSP\n"
+			f"{self.transpCoeff}\n"
+			f"SCATT\n"
+			f"{self.scattCoeff}\n"
+			f"COLOR\n"
+			f"{self._color}\n"
+			f"{self.scattDefined=}"
+			f"{self.estimateScatt=}")
 
 	@property
 	def name(self):
 		return self._name
 	
 	@property
+	def filenames(self):
+		return self._filenames
+
+	@property
 	def absCoeff(self):
 		return self._absCoeff
+
+	@property
+	def transpCoeff(self):
+		return self._transpCoeff
 
 	@property
 	def scattCoeff(self):
 		return self._scattCoeff
 
 	@property
+	def nbrAbsTranspCoeffs(self):
+		return self._nbrAbsTranspCoeffs
+	@nbrAbsTranspCoeffs.setter
+	def nbrAbsTranspCoeffs(self, x):
+		assert x == 6 or x == 7 or x == 8
+		self._nbrAbsTranspCoeffs = x
+		self.updateFile()
+
+	@property
+	def nbrScattCoeffs(self):
+		return self._nbrScattCoeffs
+	@nbrScattCoeffs.setter
+	def nbrScattCoeffs(self, x):
+		assert x == 6 or x == 7 or x == 8
+		self._nbrScattCoeffs = x
+		self.updateFile()
+	
+	@property
+	def transpDefined(self):
+		return self._transpDefined
+	@transpDefined.setter
+	def transpDefined(self, x):
+		assert x is True or x is False
+		self._transpDefined = x
+		self.updateFile()
+
+	@property
+	def scattDefined(self):
+		return self._scattDefined
+	@scattDefined.setter
+	def scattDefined(self, x):
+		assert x is True or x is False
+		self._scattDefined = x
+		self.updateFile()
+
+	@property
+	def colorDefined(self):
+		return self._colorDefined
+	@colorDefined.setter
+	def colorDefined(self, x):
+		assert x is True or x is False
+		self._colorDefined = x
+		self.updateFile()
+		print("colorDefined:", self._colorDefined)
+
+	@property
+	def floatFormat(self):
+		return self._floatFormat
+	@floatFormat.setter
+	def floatFormat(self, x):
+		assert x is True or x is False
+		self._floatFormat = x
+		self.updateFile()
+
+	@property
 	def color(self):
 		return self._color
 	@color.setter
-	def color(self, color):
-		self._color = color
-		self.updateValuesInFile()
+	def color(self, x):
+		assert len(x) == 3
+		assert all([xx <= 255 and xx >= 0] for xx in x)
+		self._color = [int(xx) for xx in x]
+		self.updateFile()
 
-	def importValuesFromFiles(self):
-		materialRead = False
-		with fileinput.input(files=self._filenames) as f:
+	@property
+	def isAudience(self):
+		return self._isAudience
+	@isAudience.setter
+	def isAudience(self, x):
+		assert x is True or x is False
+		self._isAudience = x
+		self.updateFile()
+
+	@property
+	def lambert1D(self):
+		return self._lambert1D
+	@lambert1D.setter
+	def lambert1D(self, x):
+		assert x is True or x is False
+		self._lambert1D = x
+		self.updateFile()
+
+	@property
+	def estimateScatt(self):
+		return self._estimateScatt == 1
+	@estimateScatt.setter
+	def estimateScatt(self, x):
+		assert x is True or x is False
+		self._estimateScatt = x
+		self.updateFile()
+
+	@property
+	def scattRoughness(self):
+		return self._scattRoughness
+	@scattRoughness.setter
+	def scattRoughness(self, x):
+		assert x > 0.0
+		self._scattRoughness = float(x)
+		self.updateFile()
+
+	def updateFromFile(self):
+		# search stops after finding first instance of material, 
+		# it does not check whether the material is defined more than once
+		with fileinput.input(files = self._filenames, mode = 'r') as f:
 			for line in f:
-				if (x := self._patternComp.findall(line)):
-					if materialRead is True:
-						raise RuntimeError("Material seems to be defined more than once in the files")
-					absCoeff = [int(s) for s in re.split(r"[ \t]+|(?:[ \t]*:[ \t]*)", x[0][0].strip()) if s]
-					scattCoeff = [int(s) for s in re.split(r"[ \t]+|(?:[ \t]*:[ \t]*)", x[0][1].strip()) if x[0][1] and s]
-					color = [int(s) for s in re.split(r"[ \t]+", x[0][2].strip()) if x[0][2]]
-					materialRead = True
+				if (x := self._patternPrime.search(line)):
+					self.updateFromMatch(x)
+					return
+		raise RuntimeError(f"material '{self._name}' does not exist or is badly formatted")
 
-		self._absCoeff = FreqBandValues(absCoeff, callback = self.updateValuesInFile)
-		self._scattCoeff = FreqBandValues(scattCoeff, callback = self.updateValuesInFile)
-		if color:
-			self._color = color # default value is set in constructor for ease
+	def updateFromMatch(self, match):
+		self._isReading = True
+		self.isAudience = match.group("Audience") == "AUD"
+		self.floatFormat = match.group("FloatFormat") == "1"
 
-
-	def updateValuesInFile(self):
-		newStrAbsCoeffsArray = [str(int(x)) for x in self._absCoeff.values]
-		if len(newStrAbsCoeffsArray) > 6:
-			newStrAbsCoeffsArray.insert(6, ':')
-		newStrAbsCoeffs = ' '.join(newStrAbsCoeffsArray)
-		if self.color:
-			newStrColor = ' {' + ' '.join([str(int(cc)) for cc in self.color]) + '}'
+		if self._floatFormat:
+			content = re.search(patternContent1, match.group("Content"))
 		else:
-			newStrColor = ''
+			content = re.search(patternContent100, match.group("Content"))
 
-		if not bool(self._scattCoeff.values):
-			# only needs to modify abs coeffs
+		assert content is not None
+
+		self.transpDefined = content.group("absTranspCoeff") is not None
+		self.colorDefined = content.group("ColorRGB") is not None
+
+
+		# abs and transp coeffs
+		if self._transpDefined:
+			assert content.group("absTranspCoeff") is not None
+			absTranspCoeff = [float(aa) if self._floatFormat else int(aa)/100.0 for aa in re.split(r"(?:[ \t]*:[ \t]*)|\/|[ \t]+", content.group("absTranspCoeff").strip())]
+			print(absTranspCoeff)
+			assert len(absTranspCoeff) % 2 == 0
+			absCoeff, transpCoeff = (absTranspCoeff[ii::2] for ii in [0, 1])
+			self.transpCoeff.setFromArray(transpCoeff)
+		else:
+			assert content.group("absCoeff") is not None
+			absCoeff = [float(aa) if self._floatFormat else int(aa)/100.0 for aa in re.split(r"(?:[ \t]*:[ \t]*)|[ \t]+", content.group("absCoeff").strip())]
+
+		self.nbrAbsTranspCoeffs = len(absCoeff)
+		self.absCoeff.setFromArray(absCoeff)
+
+		# scatt coeffs
+		print(content)
+		print(content.groupdict())
+		if content.group("scattCoeff") is not None:
+			self.scattDefined = True
+			scattCoeff = [float(aa) if self._floatFormat else int(aa)/100.0 for aa in re.split(r"(?:[ \t]*:[ \t]*)|[ \t]+", content.group("scattCoeff").strip())]
+			self.lambert1D = content.group("LambertType") == "L1"
+			self.nbrScattCoeffs = len(scattCoeff)
+			self.scattCoeff.setFromArray(scattCoeff)
+			self.estimateScatt = False
+			print("cas 1")
+		elif content.group("scattCoeffEstimate") is not None:
+			self.scattDefined = True
+			self.lambert1D = content.group("LambertType") == "L1"
+			self.estimateScatt = True
+			self.scattRoughness = float(content.group("scattCoeffEstimate"))
+			print("cas 2")
+		else:
+			self.scattDefined = False
+			print("cas 3")
+
+		# color
+		if self.colorDefined:
+			color = [int(s) for s in re.split(r"[ \t]+", content.group("ColorRGB").strip())] 
+			self.color = color
+
+		self._comments = content.group("Comments")
+
+		self._isReading = False
+
+	
+	def updateFile(self):
+		if self._isReading is False:
 			with fileinput.input(files = self._filenames, inplace = True) as f:
 				for line in f:
-					line = self._patternShortComp.sub(r"\g<1><" + newStrAbsCoeffs + r" >" + newStrColor + "\g<2>", line.rstrip())
-					print(line, end = '\r\n')
+					if (x := self._patternPrime.match(line)):
+						try:
+							newLine = self.createLine()
+						except:
+							# in case of error, make sure the rest of the file is not erased
+							from datetime import date
+							print("; (!!) potential error in next line caused by 'autocatt' (" + now.strftime('%d/%m/%Y %H:%M:%S') + ")")
+							newline = line.rstrip()
+					else:
+						newLine = line.rstrip()
+					print(newLine, end = '\r\n')
+
+
+
+	def _createNumGroupString(self, x):
+		if len(x) > 6:
+			x.insert(6, ':')
+		if self.floatFormat:
+			return ' '.join([str(xx) for xx in x])
 		else:
-			# both abs coeffs AND scatt coeffs are updated
-			newStrScattCoeffsArray = [str(int(x)) for x in self._scattCoeff.values]
-			if len(newStrScattCoeffsArray) > 6:
-				newStrScattCoeffsArray.insert(6, ':')
-			newStrScattCoeffs = ' '.join(newStrScattCoeffsArray)
-			with fileinput.input(files = self._filenames, inplace = True) as f:
-				for line in f:
-					line = self._patternLongComp.sub(r"\g<1><" + newStrAbsCoeffs + r" >\g<2><" + newStrScattCoeffs + r">" + newStrColor + "\g<3>", line.rstrip())
-					print(line, end = '\r\n')
-			
+			return ' '.join([str(int(round(xx * 100))) if xx != ':' else xx for xx in x])
+
+	def _createAbsString(self):
+		return self._createNumGroupString(self.absCoeff.getArray(self.nbrAbsTranspCoeffs))
+	
+	def _createScattString(self):
+		if self.estimateScatt:
+			return " estimate(" + str(self.scattRoughness) + ")"
+		else:
+			return self._createNumGroupString(self.scattCoeff.getArray(self.nbrScattCoeffs))
+
+	def _createAbsTranspString(self):
+		a = zip([str(xx) if self.floatFormat else str(int(round(xx * 100))) 
+				for xx in self.absCoeff.getArray()[0:self.nbrAbsTranspCoeffs]], 
+				[str(xx) if self.floatFormat else str(int(round(xx * 100))) 
+				for xx in self.transpCoeff.getArray()[0:self.nbrAbsTranspCoeffs]])
+		b = ['/'.join(xx) for xx in list(a)]
+		if len(b) > 6:
+			b.insert(6, ':')
+		return ' '.join(b)
+
+
+	def _createColorString(self):
+		return ' '.join([str(cc) for cc in self.color])
+
+	def createLine(self, comments = None):
+		line = ""
+
+		if self.isAudience:
+			line += "AUD"
+
+		line += "ABS"
+
+		if self.floatFormat:
+			line += "1"
+
+		line += (" " + self._name + " = ")
+
+		if self.transpDefined:
+			line += ("<" + self._createAbsTranspString() + " >")
+		else:
+			line += ("<" + self._createAbsString()  + " >")
+
+		if self.scattDefined:
+			if self._lambert1D:
+				line += " L1 "
+			else:
+				line += " L "
+			line += ("<" + self._createScattString() + " >")
+
+		if self.colorDefined:
+			line += (" {" + self._createColorString() + "}")
+
+		if self._comments:
+			line += self._comments
+
+		return line
 
 
 
-def getAllMaterialsFromFiles(filenames):
-	pattern = r"^\s*ABS\s+" + patternMatName + "\s*=\s*" + patternGrpNbrs + r"(?:\s*L\s*" + patternGrpNbrs + r")?"
+class ProjectMaterialsWrapper:
+	def __init__(self, proj):
+		if isinstance(proj, autocatt.projects.MD9Wrapper):
+			self._filenames = autocatt.projects.getAllNestedGeoFiles(proj.masterGeoFile)
+		elif isinstance(proj, str) or isinstance(proj, pathlib.Path):
+			self._filenames = autocatt.projects.getAllNestedGeoFiles(proj)
+		else:
+			self._filenames = proj
 
-	patternComp = re.compile(pattern)
+		self._pattern = re.compile(r"^[ \t]*(?:AUD)?ABS1?[ \t]*" + patternMatName + r"[ \t]*=[ \t]*<.*>.*")
+		self.getAllMaterialsFromFiles()
 
-	allNames = []
-	scattCoeffsDefined = []
-	with fileinput.input(filenames) as f:
-		for line in f:
-			if (x := patternComp.findall(line)):
-				name = x[0][0]
-				if name in allNames:
-					raise RuntimeError("Material seems to be defined more than once in the files")
-				if x[0][2]:
-					scattCoeffsDefined.append(True)
-				else:
-					scattCoeffsDefined.append(False)
-				allNames.append(name)
-
-	# sort materials according to their names
-	allFilenamesWithScattDef = list(zip(allNames, scattCoeffsDefined))
-	allFilenamesWithScattDef.sort(key=lambda x : x[0], reverse = False)
-
-	return list(zip(*allFilenamesWithScattDef)) # unzip the zipped tuples with *
-
-
-
-class ProjectMaterials:
-	def __init__(self, filename):
-		allMaterialNames, isScattDef = getAllMaterialsFromFiles(filename)
-		self._materials = {mat: Material(mat, filenames = filename) for mat in allMaterialNames}
-		self._NparamsAbs = 0
-		self._NparamsScatt = 0
-		for mat in self._materials.values():
-			self._NparamsAbs += len(mat.absCoeff.values)
-			self._NparamsScatt += len(mat.scattCoeff.values)
-
-	def __str__(self):
-		return '\n'.join([mat.__str__() for mat in self._materials.values()]) + '\n'
-
-	def getDataFrame(self):
-		all_df = []
-		for mat in self._materials.values():
-			all_df.append(mat.getDataFrame())
-		return pd.concat(all_df)
+	def getAllMaterialsFromFiles(self):
+		self._materials = dict()
+		with fileinput.input(self._filenames, mode = 'r') as f:
+			for line in f:
+				if (x := self._pattern.search(line)):
+					name = x.group("MaterialName")
+					if name in self._materials:
+						raise(f"Material {name} is defined more than once")
+					self.materials[name] = None
+		# sort dictionary
+		self._materials = dict(sorted(self._materials.items()))
 		
+		for kk in self._materials.keys():
+			# singleMaterialWrapper are constructed only now, to ensure that their creation does not interfere with the reading of the files above
+			print(f"creating material wrapper for '{kk}'")
+			self._materials[kk] = SingleMaterialWrapper(kk, self._filenames)
 
 	@property
 	def materials(self):
-		return self._materials.values()	
+		return self._materials
+					
+		
 
-	def __getitem__(self, name):
-		if isinstance(name, Iterable):
-			return tuple(self._materials[n] for n in name)
-		else:
-			return self._materials[name]
 	
-	@property
-	def vectorizedAbs(self):
-		absCoeffs = [] 
-		for mat in self._materials.values():
-			absCoeffs.extend(mat.absCoeff.values)
-		return absCoeffs
-	@vectorizedAbs.setter
-	def vectorizedAbs(self, x):
-		if len(x) != self._NparamsAbs:
-			raise ValueError(f"{self._NparamsAbs} values expected, received {len(x)}")
-		idx = 0
-		for mat in self._materials.values():
-			for f in mat.absCoeff.frequencies():
-				mat.absCoeff[f] = x[idx]
-				idx += 1
 
-	@property
-	def vectorizedScatt(self):
-		scattCoeffs = []
-		for mat in self._materials.values():
-			scattCoeffs.extend(mat.scattCoeff.values)
-		return scattCoeffs
-	@vectorizedScatt.setter
-	def vectorizedScatt(self, x):
-		if len(x) != self._NparamsScatt:
-			raise ValueError(f"{self._NparamsScatt} values expected, received {len(x)}")
-		idx = 0
-		for mat in self._materials.values():
-			for f in mat.scattCoeff.frequencies():
-				mat.scattCoeff[f] = x[idx]
-				idx += 1
 
-	@property
-	def vectorizedParams(self):
-		# concatenate vectorized Abs and Scatt
-		return self.vectorizedAbs + self.vectorizedScatt
-	@vectorizedParams.setter
-	def vectorizedParams(self, x):
-		if len(x) != self._Nparam:
-			raise ValueError(f"{self._Nparam} must be set, received {len(x)}")
-		self.vectorizedAbs = x[0:self._NparamsAbs]
-		self.vectorizedParams = x[self.NparamsAbs:]
+
+		
+					
+
+						
+
+						
+
+
+
+
+A = SingleMaterialWrapper('haha', 'testFileInput/text1.txt')	
+A.updateFromFile()
+print(A)
+#print('$$$$$')
+print(A.createLine())
+A.transpDefined = False
+A.floatFormat = True
+#A.isAudience = False
+A.lambert1D = False
+A.estimateScatt = True
+#print(A.createLine())
+
+
+#B = ProjectMaterialsWrapper("testFileInput/text1.txt")
+#print(B.materials)
+			
 
 

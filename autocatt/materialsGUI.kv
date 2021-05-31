@@ -1,36 +1,95 @@
+<Label>:
+	disabled_color: (1.0, 1.0, 1.0, 0.1)
 
-<AllMatPropTabbedPanel@TabbedPanel>:
+<GeoInstruction@ScrollView>:
+	do_scroll_x: True
+	do_scroll_y: False
+	size_hint_y: None
+	always_overscroll: False
+	effect_x: None
+	height: 40
+#	GridLayout:
+#		rows: 1
+#		size_hint_x: None
+#		width: self.minimum_width
+	Label:
+		id: label
+		size_hint_x: None
+		text: "hahaha hello"
+		width: self.texture_size[0]
+
+<AllMatPropTabbedPanel@TabbedPannel>:
 	tab_pos: "top_left"
 	size_hint: 1.0, 1.0
-	pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+	pos_hint: {"center_x": 0.5, "center_y": 0.5}
 	do_default_tab: False
-	background_color: (0.1, 0.1, 0.1, 1)
+	background_color: (0.1, 0.1, 0.1, 1.0)
 
 
-<MatPropPanel@BoxLayout>:
-	materialName: self.materialName
-	orientation: "vertical"
-	colorPickerPopup: self.colorPickerPopup
-	color: self.color
-	canvas:
-		Color:
-			rgba: (0.0, 0.0, 0.0, 1.0)
-		Rectangle:
-			pos: self.pos
-			size: self.size
+<LabeledWidget@BoxLayout>:
+	orientation: "horizontal"
+	size_hint_y: 0.1
+
+<LabeledCheckbox@LabeledWidget>:
+	label: "default label"
 	Label:
-		text: root.materialName
-		size_hint_y: 0.1
-	Button:
-		id: but_col
-		text: str(root.color)
-		size_hint_y: 0.1
-		on_press: root.openColorPicker()
+		text: root.label
 
+
+<NbrCoeffSelector@BoxLayout>:
+	title: ""
+	groupName: ""
+	orientation: "vertical"
+	size_hint_y: 0.4
+	Label:
+		size_hint_y: 0.1
+		text: root.title
+		halign: "right"
+		disabled: root.disabled
+
+
+<PropNbrAbsTransp@NbrCoeffSelector>:
+	id: "nbrSelector_absTransp"
+	label: "nbr abs/scatt coeffs"
+	groupName: "grp_absTransp"
+	
+
+<PropScattRoughness@LabeledWidget>:
+	TextInput:
+		id: textInput
+		input_filter: "float"
+		halign: "right"
+		multiline: False
+		size_hint_y: None
+		height: 50
+		valign: "top"
+		on_text_validate: root.set_value(self, self.text)
+	Label:
+		text: "roughness"
+	
+<PropNbrScatt@NbrCoeffSelector>:
+	id: "nbrSelector_scatt"
+	label: "nbr scatt coeffs"
+	groupName: "grp_scatt"
+
+<PropColor@LabeledWidget>:
+	colorDefined: False
+	CheckBox:
+		id: checkbox
+		active: False
+		on_active: root.set_colorDefined(self, self.active)
+	Button:
+		id: button
+		text: "RGB"
+		disabled: not checkbox.active
+		on_press: root.on_press(self, self.text)
+		backgroung_color: (1.0, 1.0, 1.0, 1.0)
+		color: (0.0, 0.0, 0.0, 1.0)
+		background_normal: ''
+	
 
 <ColorPickerPopup@Popup>
-	title: f"pick a color for {self.ownerMat.materialName}"
-	ownerMat: self.ownerMat
+	title: f"pick a color"
 	size_hint: (0.8, 0.8)
 	colorPicker: cp
 	BoxLayout:
@@ -43,34 +102,72 @@
 			size_hint_y: 0.2
 
 
-
-<FreqSections@BoxLayout>:
-	orientation: "horizontal"
-
-
-<FreqSection@BoxLayout>:
+<FreqSlider@BoxLayout>:
 	orientation: "vertical"
-	frequency: self.frequency
-	value: self.value
-	gray: False
 	canvas:
 		Color:
-			rgba: (1, 1, 1, 0 if self.gray else 0.1)
+			rgba: (1, 1, 1, 0.1 if self.index % 2 else 0)
 		Rectangle:
 			pos: self.pos
 			size: self.size
 	Slider:
 		id: slider
 		orientation: "vertical"
+		min: 0.0
+		max: 1.0
 		size_hint_y: 0.8
-		step: 1.0
-		value: root.value
-		on_value: root.on_value_change(value = self.value)
-		value_track: True
+		value_track: False
+		on_value: root.value = self.value
+		step: 0.01
+		disabled: root.disabled
 	Label:
-		text: "{:.0f}".format(slider.value)
+		text: ("{:.2f}" if root.floatFormat else "{:.0f}").format(slider.value * (1.0 if root.floatFormat else 100))
 		size_hint_y: 0.1
+		disabled: root.disabled
 	Label:
 		text: f"{root.frequency} Hz"
 		size_hint_y: 0.1
+
+<FreqSliderSection@BoxLayout>:
+	orientation: "vertical"
+	Label:
+		text: root.coeffType
+		size_hint_y: 0.1
+		
 	
+
+<MatMetaParameters@BoxLayout>:
+	materialName: self.materialName
+	orientation: "vertical"
+	spacing: 30.0
+	canvas:
+		Color: 
+			rgba: (0.4, 0.4, 0.4, 1.0)
+		Rectangle:
+			pos: self.pos
+			size: self.size
+	Label:
+		id: "text_materialName"
+		text: root.materialName or ""
+		font_size: 60
+		size_hint_y: None
+		height: 75
+
+
+<MatPropPanel@BoxLayout>:
+	materialName: self.materialName
+	orientation: "horizontal"
+	colorPickerPopup: self.colorPickerPopup
+#size_hint: 0.3, 1.0
+#	MatMetaParameters: 
+#		materialName: root.materialName
+#		size_hint_x: 0.3
+#	BoxLayout:
+#		size_hint_x: 0.7
+
+
+
+
+
+
+
