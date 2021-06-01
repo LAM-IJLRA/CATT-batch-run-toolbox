@@ -89,7 +89,7 @@ def main(inputFile, nbrRuns, irFormat, meas, CATTexe, TUCTexe):
 		count += 1
 
 		# update materials log file
-		allMaterials = autocatt.materials.ProjectMaterials(allGeoFiles)
+		allMaterials = autocatt.materials.ProjectMaterialsWrapper(allGeoFiles)
 		df = allMaterials.getDataFrame()
 		df["counter"] = count
 		df = df[["counter"] + [col for col in df.columns if col != "counter"] ]
