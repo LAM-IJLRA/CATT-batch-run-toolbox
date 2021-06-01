@@ -119,7 +119,7 @@ class SingleMaterialWrapper:
 			f"{self._color}\n"
 			f"{self.scattDefined=}"
 			f"{self.estimateScatt=}")
-
+	
 	@property
 	def name(self):
 		return self._name
@@ -429,6 +429,15 @@ class ProjectMaterialsWrapper:
 	@property
 	def materials(self):
 		return self._materials
+
+	def getDataFrame(self):
+		lst = []
+		for matName, mat in self.materials.items():
+			lst.append({"material": matName, "command": mat.createLine()})
+		return pd.DataFrame(lst)
+
+		
+
 					
 		
 
