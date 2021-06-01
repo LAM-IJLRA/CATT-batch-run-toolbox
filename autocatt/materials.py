@@ -431,6 +431,7 @@ class ProjectMaterialsWrapper:
 		return self._materials
 
 	def getDataFrame(self):
+		import pandas as pd
 		lst = []
 		for matName, mat in self.materials.items():
 			lst.append({"material": matName, "command": mat.createLine()})
