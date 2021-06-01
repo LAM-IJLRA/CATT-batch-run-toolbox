@@ -455,21 +455,21 @@ class ProjectMaterialsWrapper:
 
 
 
-A = SingleMaterialWrapper('haha', 'testFileInput/text1.txt')	
-A.updateFromFile()
-print(A)
-#print('$$$$$')
-print(A.createLine())
-A.transpDefined = False
-A.floatFormat = True
-#A.isAudience = False
-A.lambert1D = False
-A.estimateScatt = True
+#A = SingleMaterialWrapper('haha', 'testFileInput/text1.txt')	
+#A.updateFromFile()
+#print(A)
+##print('$$$$$')
 #print(A.createLine())
-
-
-#B = ProjectMaterialsWrapper("testFileInput/text1.txt")
-#print(B.materials)
+#A.transpDefined = False
+#A.floatFormat = True
+##A.isAudience = False
+#A.lambert1D = False
+#A.estimateScatt = True
+##print(A.createLine())
+#
+#
+##B = ProjectMaterialsWrapper("testFileInput/text1.txt")
+##print(B.materials)
 			
 
 
