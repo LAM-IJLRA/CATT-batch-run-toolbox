@@ -39,15 +39,18 @@ def main(inputFile):
 	# One cannot directly pass parameters to the App, therefore the input files are passed through the config file
 
 	modulePath = pathlib.Path(autocatt.__file__).parent
-	configFilename = "materialsmodifier.ini"
+	configFilename = "materialmodifier.ini"
 	configFilename = modulePath / configFilename
 	configFilename = str(configFilename.absolute())
 
+	print(geoFile)
 	with open(configFilename, 'w+') as f:
 		f.write("[input]\n")
 		f.write("geofilename = " + str(geoFile) + "\n")
+
+	print("test")
 			
-	A = autocatt.materialsGUI.MaterialsModifierApp()
+	A = autocatt.materialsGUI.MaterialModifierApp()
 	A.run()
 
 

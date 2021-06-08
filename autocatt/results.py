@@ -91,6 +91,9 @@ def createCATTResultsDataframe(projName, outputFolder: pathlib.Path):
 	df["folder"] = df["folder"].replace([r"\\vmware-host\Shared Folders\amphi55a\OUTPUT"], "/Users/zagala/Documents/Doctorat_IRCAM_UPMC/misc/amphi55a/OUTPUT")
 	df.to_csv(outputFolder / f"{projName}_dataframe_macOS.csv", index = False)
 
+	# only with last "repetition"
+	df.loc[df["repetition"] == max(df["repetition"])].to_csv(outputFolder / f"{projName}_dataframe_macOS_lastRun.csv", index = False)
+
 
 if __name__ == "__main__":
 	folder = pathlib.Path("/Users/zagala/Documents/Doctorat_IRCAM_UPMC/misc/amphi55a/measures/irs/")

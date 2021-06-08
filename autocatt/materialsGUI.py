@@ -483,5 +483,5 @@ class MaterialModifierApp(App):
 #return MatPropPanel(materialName = "testMaterial")
 
 
-if __name__ == "__main__":
-	A = MaterialModifierApp().run()	
+#if __name__ == "__main__":
+#	A = MaterialModifierApp().run()	
