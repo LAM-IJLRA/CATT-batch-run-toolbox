@@ -21,9 +21,8 @@ import autocatt.materials
 
 # load .kv file for GUI
 import pkg_resources
-if pkg_resources.isdir("autocatt/resources") is False:
-    raise FileExistsError()
 kivyFile = pkg_resources.resource_filename("autocatt", "resources/materialsGUI.kv")
+#print(kivyFile)
 Builder.load_file(kivyFile)
 
 

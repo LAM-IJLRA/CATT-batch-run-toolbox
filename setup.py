@@ -16,6 +16,6 @@ setup(name="autocatt",
         packages = find_packages(),
         #package_dir={'.': 'autocatt'},
         include_package_data=True,
-        package_data = {"": ["*.kv"]},
+        #package_data = {"autocatt/resources": ["autocatt/resources/materialsGUI.kv"]},
         data_files = [("autocatt/resources", ["autocatt/resources/materialsGUI.kv"])]
 	 )
