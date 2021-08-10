@@ -48,8 +48,6 @@ def main(inputFile):
 		f.write("[input]\n")
 		f.write("geofilename = " + str(geoFile) + "\n")
 
-	print("test")
-			
 	A = autocatt.materialsGUI.MaterialModifierApp()
 	A.run()
 
@@ -59,5 +57,4 @@ def main(inputFile):
 
 
 if __name__ == "__main__":
-	print('1')
 	main()
