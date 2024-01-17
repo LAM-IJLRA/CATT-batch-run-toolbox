@@ -36,7 +36,7 @@ You will also find some convenience command line tools:
 ## To install/use:
 
 1. Before anything else , enable auto-run-save hidden options. Copy the following code in the hidden options  .txt files for CATT and TUCT ("CATTDATA\hidddenoptions_v9.txt" and "CATTDATA\hidddenoptions_TUCT.txt"). The code is the same for both files:
- 
+
 > C2009-05641-49C61-6B041 ;AutoRunSaveCAG
 
 2. create a virtual environement with all required modules (e.g. using conda)
@@ -118,5 +118,6 @@ Help section: ‘help CATT_batch_processing.m’
 To run it, you need to:
 - define the path to your own CATT folder at line 54
 - set the desired input parameters in the INPUT PARAMETERS SECTION
+
 
 -->
